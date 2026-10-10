@@ -30,10 +30,12 @@ if [ "${#shell_targets[@]}" -gt 0 ]; then
 fi
 
 if [ "$kotlin_changed" = true ]; then
-  if [ -x ./gradlew ]; then
+  if [ ! -x ./gradlew ]; then
+    echo "[pre-commit] Kotlin changed but ./gradlew is missing; skipping ktlint/detekt." >&2
+  elif ! grep -qs "ktlint" gradle/libs.versions.toml || ! grep -qs "detekt" gradle/libs.versions.toml; then
+    echo "[pre-commit] ktlint/detekt not wired in Gradle yet; skipping Kotlin lint." >&2
+  else
     echo "[pre-commit] ktlint + detekt"
     ./gradlew --quiet ktlintCheck detekt
-  else
-    echo "[pre-commit] Kotlin changed but ./gradlew is missing; skipping ktlint/detekt." >&2
   fi
 fi

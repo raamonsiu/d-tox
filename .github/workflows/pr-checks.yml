@@ -99,7 +99,12 @@ jobs:
         if: hashFiles('gradlew') != ''
         with:
           distribution: temurin
-          java-version: 17
-      - name: ktlint, detekt, Android lint, unit tests
+          java-version: 21
+      - name: Android lint, unit tests and Kotlin lint
         if: hashFiles('gradlew') != ''
-        run: ./gradlew --no-daemon ktlintCheck detekt lintDebug testDebugUnitTest
+        run: |
+          tasks="lintDebug testDebugUnitTest"
+          if grep -qs ktlint gradle/libs.versions.toml && grep -qs detekt gradle/libs.versions.toml; then
+            tasks="$tasks ktlintCheck detekt"
+          fi
+          ./gradlew --no-daemon $tasks
