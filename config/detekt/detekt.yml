@@ -1,6 +1,5 @@
 # Overrides on top of detekt defaults (set buildUponDefaultConfig = true in Gradle).
-# Wire-up when the Android project is created:
-#   detekt { config.setFrom("$rootDir/config/detekt/detekt.yml"); buildUponDefaultConfig = true }
+# Wired in app/build.gradle.kts (buildUponDefaultConfig = true).
 build:
   maxIssues: 0
 
@@ -22,6 +21,8 @@ complexity:
     threshold: 200
 
 naming:
+  FunctionNaming:
+    ignoreAnnotated: ["Composable"]
   VariableMinLength:
     active: true
     minimumVariableNameLength: 3
@@ -41,7 +42,7 @@ style:
     max: 3
   ForbiddenComment:
     active: true
-    values: ["TODO:", "FIXME:", "STOPSHIP:"]
+    comments: ["TODO:", "FIXME:", "STOPSHIP:"]
     allowedPatterns: "DTOX-\\d+"
 
 potential-bugs:

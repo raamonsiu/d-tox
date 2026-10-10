@@ -104,7 +104,6 @@ jobs:
         if: hashFiles('gradlew') != ''
         run: |
           tasks="lintDebug testDebugUnitTest"
-          if grep -qs ktlint gradle/libs.versions.toml && grep -qs detekt gradle/libs.versions.toml; then
-            tasks="$tasks ktlintCheck detekt"
-          fi
+          grep -qs ktlint gradle/libs.versions.toml && tasks="$tasks ktlintCheck"
+          grep -qs detekt gradle/libs.versions.toml && tasks="$tasks detekt"
           ./gradlew --no-daemon $tasks
