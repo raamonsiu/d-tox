@@ -4,10 +4,13 @@ Orden pensado para validar antes lo más arriesgado técnicamente (paginación, 
 
 ## Fase 0 · Preparación (siguiente paso)
 
-- [ ] Cerrar preguntas abiertas de [07-decisions.md](07-decisions.md) (licencia, nombre, `applicationId`).
-- [ ] Definir _harness_ de desarrollo con IA (CLAUDE.md, convenciones, comandos de build/test, subagentes/skills útiles).
+- [x] Cerrar preguntas abiertas de [07-decisions.md](07-decisions.md) (licencia, nombre, `applicationId`).
+- [x] Harness estático: [CLAUDE.md](../CLAUDE.md), hooks, versionado, plantillas, CI de PR.
+- [ ] Harness dinámico (skills/subagentes/comandos útiles) cuando exista código.
 - [ ] Inicializar proyecto en Android Studio (Kotlin, Compose, `minSdk 26`).
-- [ ] Repositorio Git, CI mínima (build + lint + tests), plantilla de issues.
+- [x] Repositorio Git, CI de PR (slug, versión, Prettier, Semgrep), plantillas.
+- [ ] Cablear en Gradle: ktlint, detekt (`config/detekt/detekt.yml`), `versionName/versionCode` desde `VERSION`.
+- [ ] En GitHub: proteger `main`, exigir los checks, crear etiquetas `deps-approved` y `deletion-approved`.
 - [ ] Recopilar corpus de prueba: 10 EPUB variados (Gutenberg, Standard Ebooks, Calibre), 5 PDF, TXT/MD.
 - [ ] Empaquetar fuentes (Libron, OpenDyslexic, IBM Plex Mono) con sus licencias.
 

@@ -21,6 +21,12 @@
 | D-15 | ~~Licencia no comercial (PolyForm Noncommercial)~~ — **sustituida por D-16**                                         | 2026-10-10 | El autor prefiere open source completo                                                                                 |
 | D-16 | Licencia del código: **GPL-3.0-or-later** (open source completo, copyleft: los derivados deben seguir siendo libres) | 2026-10-10 | Open source real, compatible con F-Droid y Play Store; el copyleft es lo más cercano a "que no se copie para cerrarlo" |
 | D-17 | `applicationId`: `dev.d1ito.dtox`                                                                                    | 2026-10-10 | Decisión del autor; difícil de cambiar tras publicar                                                                   |
+| D-18 | Slug obligatorio en rama, commits y título de PR: `DTOX[-ticket](tipo)/descripcion_corta`                            | 2026-10-10 | Decisión del autor                                                                                                     |
+| D-19 | Versionado `major.minor.fix` en `VERSION`; hooks suben fix en cada commit y en merges (máximo de los padres + 1)     | 2026-10-10 | Decisión del autor; merge drivers evitan conflictos en `VERSION`/README                                                |
+| D-20 | Calidad: ktlint + detekt (Kotlin), Prettier (md/json/yml), Semgrep, todo en hooks y CI                               | 2026-10-10 | Prettier no soporta Kotlin; ktlint cubre su formato                                                                    |
+| D-21 | Código, KDoc y comentarios en inglés; textos de usuario y docs en español                                            | 2026-10-10 | Convención habitual en proyectos abiertos; revisable                                                                   |
+| D-22 | Librerías nuevas y borrados requieren aprobación del dev (etiquetas `deps-approved` / `deletion-approved` en PR)     | 2026-10-10 | Decisión del autor                                                                                                     |
+| D-23 | Issues mínimos (≈ ≤150 líneas, ≤5 archivos)                                                                          | 2026-10-10 | Decisión del autor                                                                                                     |
 
 ## Preguntas abiertas
 

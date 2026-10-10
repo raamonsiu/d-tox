@@ -1,0 +1,20 @@
+## Qué y por qué
+
+<!-- 1-2 frases. Cierra #<issue> -->
+
+## Cómo se probó
+
+<!-- Tests añadidos / pasos manuales -->
+
+## Checklist
+
+- [ ] Título de la PR = slug (`DTOX-42(feat)/descripcion_corta`)
+- [ ] Un solo cambio, una responsabilidad (si crece, dividir en otro issue)
+- [ ] Tests nuevos o actualizados, y pasan
+- [ ] Sin librerías nuevas _(o: origen, licencia y autoría explicados abajo)_
+- [ ] Sin borrados _(o: qué se borra y por qué, aprobado)_
+- [ ] README actualizado solo si cambia algo que describe (la versión ya la pone el hook)
+
+## Librería nueva / borrados (si aplica)
+
+<!-- Nombre, repo oficial, licencia, autoría, última release, por qué no basta la stdlib -->

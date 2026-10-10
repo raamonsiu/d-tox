@@ -1,0 +1,37 @@
+name: Tarea
+description: Un cambio mínimo y acotado (una responsabilidad)
+title: "DTOX(feat)/descripcion_corta"
+body:
+  - type: textarea
+    id: responsibility
+    attributes:
+      label: Responsabilidad (una frase)
+      description: Qué hace este issue y nada más.
+    validations:
+      required: true
+  - type: dropdown
+    id: type
+    attributes:
+      label: Tipo
+      options: [feat, fix, perf, refactor, style, docs, test, build, ci, chore]
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación
+      description: Lista corta y verificable. Incluye qué test lo demuestra.
+    validations:
+      required: true
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Fuera de alcance
+      description: Lo que NO entra (va a otro issue).
+  - type: checkboxes
+    id: approvals
+    attributes:
+      label: Necesita aprobación del dev
+      options:
+        - label: Añade una librería nueva
+        - label: Borra algo (archivos, funciones, datos)
