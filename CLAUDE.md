@@ -14,6 +14,19 @@ decisiones en [docs/07-decisions.md](docs/07-decisions.md). Si algo de aquí cho
 4. Nunca `--no-verify`, nunca push a `main`, nunca commits con la versión editada a mano salvo para minor/major.
 5. Solo commitea/pushea cuando el dev lo pida.
 
+## Tomar un issue (coordinación entre devs y agentes)
+
+GitHub Issues es la fuente de verdad. Requiere `gh` autenticado; usa `scripts/issue.sh`.
+
+1. Identifica el issue que pide el dev: `scripts/issue.sh list` o `show <número>`. Si hay dudas
+   entre varios, pregunta.
+2. **Libre** = etiqueta `ready`, sin assignee, sin `in-progress`, sin rama ni PR `DTOX-<n>(...)`.
+   Si está ocupado: **para**, di quién lo lleva y no lo pises.
+3. Reclama antes de escribir código: `scripts/issue.sh claim <n> <tipo> <descripcion>`
+   (te asigna, etiqueta y crea/pushea la rama). Es la única excepción a "no pushear sin que lo pidan".
+4. Lee el issue entero: responsabilidad, criterios y fuera de alcance. Lo que quede fuera, otro issue.
+5. Si abandonas: `scripts/issue.sh release <n>`. Nunca quites el reclamo de otra persona.
+
 ## Hooks y versión (automáticos, `scripts/setup.sh` los activa)
 
 - `pre-commit`: Prettier (md/json/yml), sintaxis shell, ktlint + detekt si hay Kotlin.

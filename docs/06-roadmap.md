@@ -10,7 +10,7 @@ Orden pensado para validar antes lo más arriesgado técnicamente (paginación, 
 - [ ] Inicializar proyecto en Android Studio (Kotlin, Compose, `minSdk 26`).
 - [x] Repositorio Git, CI de PR (slug, versión, Prettier, Semgrep), plantillas.
 - [ ] Cablear en Gradle: ktlint, detekt (`config/detekt/detekt.yml`), `versionName/versionCode` desde `VERSION`.
-- [ ] En GitHub: proteger `main`, exigir los checks, crear etiquetas `deps-approved` y `deletion-approved`.
+- [ ] En GitHub: proteger `main`, exigir los checks, crear etiquetas `deps-approved`, `deletion-approved`, `ready`, `in-progress` y `blocked`. Probar `scripts/issue.sh` con `gh` y remoto reales (aún sin probar).
 - [ ] Recopilar corpus de prueba: 10 EPUB variados (Gutenberg, Standard Ebooks, Calibre), 5 PDF, TXT/MD.
 - [ ] Empaquetar fuentes (Libron, OpenDyslexic, IBM Plex Mono) con sus licencias.
 

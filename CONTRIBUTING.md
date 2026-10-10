@@ -2,8 +2,10 @@
 
 1. **Clona** y activa los hooks: `git clone <repo> && cd D-TOX && scripts/setup.sh`
    (requiere Node para Prettier; JDK 17 + Android Studio para la app).
-2. **Coge un issue** (o crea uno con la plantilla). Un issue = una responsabilidad.
-3. **Crea la rama con el slug**: `git switch -c "DTOX-42(feat)/add_epub_parser"`
+2. **Coge un issue** libre (`ready`, sin assignee) o crea uno con la plantilla. Un issue = una responsabilidad.
+   Mira `scripts/issue.sh list` (requiere `gh`).
+3. **Resérvalo y crea la rama con el slug**: `scripts/issue.sh claim 42 feat add_epub_parser`
+   (te asigna, pone `in-progress` y crea `DTOX-42(feat)/add_epub_parser`). Si lo dejas: `scripts/issue.sh release 42`.
 4. **Implementa** en pequeño: pocas líneas, un solo propósito. Si crece, abre otro issue.
 5. **Testea**: `./gradlew testDebugUnitTest` y prueba a mano lo que toques.
 6. **Commit** con el slug como primera línea; los hooks validan formato, lint y suben la versión.
