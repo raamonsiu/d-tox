@@ -5,7 +5,7 @@
 ## Reglas de inclusión
 
 1. Solo texto en **dominio público** o con licencia que permita redistribuirlo íntegro (CC BY, CC BY-SA…), respetando atribución y condiciones.
-2. La **traducción** tiene derechos propios. Un autor clásico en dominio público no implica que su traducción al español lo esté. Se necesita saber *quién* tradujo y *cuándo*, o que la traducción tenga licencia libre.
+2. La **traducción** tiene derechos propios. Un autor clásico en dominio público no implica que su traducción al español lo esté. Se necesita saber _quién_ tradujo y _cuándo_, o que la traducción tenga licencia libre.
 3. En España, con carácter general, la obra pasa a dominio público 70 años tras la muerte del autor (80 años para autores fallecidos antes de 1987). Para otros países, comprobar su plazo; Wikisource y Gutenberg ya filtran por su jurisdicción, pero no sustituyen la verificación.
 4. Noticias y artículos de prensa con copyright: **no** se copian en el feed. En el MVP quedan fuera.
 5. Cada ítem lleva `license`, `source.url`, autor y traductor cuando aplique, visibles en la app.
@@ -17,13 +17,13 @@
 
 Candidatas (verificar traducción y licencia ítem a ítem):
 
-- Séneca: *Cartas a Lucilio*, *De la brevedad de la vida*
-- Marco Aurelio: *Meditaciones* (por libros/secciones)
-- Epicteto: *Enquiridión* (completo, ~10–15 min), *Disertaciones* (selecciones)
-- Epicuro: *Carta a Meneceo* (completa y corta)
-- Montaigne: *Ensayos* (ensayos individuales)
-- Platón: diálogos breves (*Critón*, *Ion*, fragmentos de *Apología*)
-- Lucrecio, Cicerón (*De la amistad*, *De la vejez*), Boecio, Schopenhauer (ensayos), Nietzsche (aforismos agrupados)
+- Séneca: _Cartas a Lucilio_, _De la brevedad de la vida_
+- Marco Aurelio: _Meditaciones_ (por libros/secciones)
+- Epicteto: _Enquiridión_ (completo, ~10–15 min), _Disertaciones_ (selecciones)
+- Epicuro: _Carta a Meneceo_ (completa y corta)
+- Montaigne: _Ensayos_ (ensayos individuales)
+- Platón: diálogos breves (_Critón_, _Ion_, fragmentos de _Apología_)
+- Lucrecio, Cicerón (_De la amistad_, _De la vejez_), Boecio, Schopenhauer (ensayos), Nietzsche (aforismos agrupados)
 
 Fuentes: Wikisource en español, Project Gutenberg en español, dominio público de bibliotecas digitales (Biblioteca Virtual Miguel de Cervantes: revisar condiciones de cada obra).
 

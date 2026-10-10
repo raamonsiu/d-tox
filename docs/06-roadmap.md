@@ -5,7 +5,7 @@ Orden pensado para validar antes lo más arriesgado técnicamente (paginación, 
 ## Fase 0 · Preparación (siguiente paso)
 
 - [ ] Cerrar preguntas abiertas de [07-decisions.md](07-decisions.md) (licencia, nombre, `applicationId`).
-- [ ] Definir *harness* de desarrollo con IA (CLAUDE.md, convenciones, comandos de build/test, subagentes/skills útiles).
+- [ ] Definir _harness_ de desarrollo con IA (CLAUDE.md, convenciones, comandos de build/test, subagentes/skills útiles).
 - [ ] Inicializar proyecto en Android Studio (Kotlin, Compose, `minSdk 26`).
 - [ ] Repositorio Git, CI mínima (build + lint + tests), plantilla de issues.
 - [ ] Recopilar corpus de prueba: 10 EPUB variados (Gutenberg, Standard Ebooks, Calibre), 5 PDF, TXT/MD.
@@ -24,6 +24,7 @@ Alcance: RF-01–04, 08, 10–18, 25 (progreso), 40.
 - Ajustes mínimos.
 
 **Salida (criterios de aceptación):**
+
 1. Importar y leer un EPUB con capítulos y títulos diferenciados.
 2. La posición se restaura tras cerrar la app y tras cambiar tamaño de fuente.
 3. 60 fps en el cambio de página en gama media; apertura < 2 s para un libro típico.
@@ -69,8 +70,8 @@ Alcance: RF-30–38.
 
 ## Riesgos de calendario
 
-| Riesgo | Efecto | Respuesta |
-|---|---|---|
-| Selección de texto en paginación propia | Retrasa v1 | Prototipo temprano en Fase 1; fallback a resaltado por párrafo |
-| Verificación de licencias/traducciones | Retrasa v2 | Empezar curación en paralelo desde Fase 1 |
-| PDF poco fiable | Frustración | Mantenerlo fuera del MVP y marcado como "mejor esfuerzo" |
+| Riesgo                                  | Efecto      | Respuesta                                                      |
+| --------------------------------------- | ----------- | -------------------------------------------------------------- |
+| Selección de texto en paginación propia | Retrasa v1  | Prototipo temprano en Fase 1; fallback a resaltado por párrafo |
+| Verificación de licencias/traducciones  | Retrasa v2  | Empezar curación en paralelo desde Fase 1                      |
+| PDF poco fiable                         | Frustración | Mantenerlo fuera del MVP y marcado como "mejor esfuerzo"       |

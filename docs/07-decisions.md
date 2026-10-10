@@ -2,38 +2,38 @@
 
 ## Decisiones tomadas
 
-| # | Decisión | Fecha | Motivo |
-|---|---|---|---|
-| D-01 | App para promover la lectura y la desintoxicación digital; lector + lecturas cortas | 2026-10-10 | Visión del autor |
-| D-02 | Proyecto de código abierto en GitHub; posible publicación en Play Store más adelante | 2026-10-10 | Decisión del autor |
-| D-03 | MVP solo en español | 2026-10-10 | Reducir alcance |
-| D-04 | Categorías del MVP: filosofía clásica y divulgación científica, elegibles por el usuario | 2026-10-10 | Decisión del autor |
-| D-05 | Sin sincronización entre dispositivos en el MVP | 2026-10-10 | Reducir alcance |
-| D-06 | Android `minSdk 26` (Android 8.0) | 2026-10-10 | Buena retrocompatibilidad con APIs modernas (java.time, canales de notificación) |
-| D-07 | Posiciones ancladas al contenido (capítulo/bloque/offset + fragmento), no a página | 2026-10-10 | La paginación depende de pantalla y tipografía |
-| D-08 | Un archivo JSON por libro para progreso y notas | 2026-10-10 | Legible, fusionable, borrado simple |
-| D-09 | EPUB prioritario; PDF "mejor esfuerzo" | 2026-10-10 | El PDF no tiene estructura semántica |
-| D-10 | Lecturas cortas desde feed estático (GitHub Actions + Pages) + pack offline + avisos locales | 2026-10-10 | Sin servidor que mantener, privacidad, compatible con F-Droid |
-| D-11 | Contenido solo de dominio público o licencia libre, curado manualmente en el MVP | 2026-10-10 | Riesgo legal de scrapear prensa y traducciones con copyright |
-| D-12 | Sin rachas, logros ni notificaciones de reenganche | 2026-10-10 | Coherencia con el propósito |
-| D-13 | Fuente de lectura por defecto: Libron; alternativas OpenDyslexic y monoespaciada | 2026-10-10 | Preferencia del autor; OFL |
-| D-14 | Nombre definitivo: **D-TOX**. La app vive en este mismo repo (proyecto Android Studio en la raíz) | 2026-10-10 | Decisión del autor |
-| D-15 | ~~Licencia no comercial (PolyForm Noncommercial)~~ — **sustituida por D-16** | 2026-10-10 | El autor prefiere open source completo |
+| #    | Decisión                                                                                                             | Fecha      | Motivo                                                                                                                 |
+| ---- | -------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------- |
+| D-01 | App para promover la lectura y la desintoxicación digital; lector + lecturas cortas                                  | 2026-10-10 | Visión del autor                                                                                                       |
+| D-02 | Proyecto de código abierto en GitHub; posible publicación en Play Store más adelante                                 | 2026-10-10 | Decisión del autor                                                                                                     |
+| D-03 | MVP solo en español                                                                                                  | 2026-10-10 | Reducir alcance                                                                                                        |
+| D-04 | Categorías del MVP: filosofía clásica y divulgación científica, elegibles por el usuario                             | 2026-10-10 | Decisión del autor                                                                                                     |
+| D-05 | Sin sincronización entre dispositivos en el MVP                                                                      | 2026-10-10 | Reducir alcance                                                                                                        |
+| D-06 | Android `minSdk 26` (Android 8.0)                                                                                    | 2026-10-10 | Buena retrocompatibilidad con APIs modernas (java.time, canales de notificación)                                       |
+| D-07 | Posiciones ancladas al contenido (capítulo/bloque/offset + fragmento), no a página                                   | 2026-10-10 | La paginación depende de pantalla y tipografía                                                                         |
+| D-08 | Un archivo JSON por libro para progreso y notas                                                                      | 2026-10-10 | Legible, fusionable, borrado simple                                                                                    |
+| D-09 | EPUB prioritario; PDF "mejor esfuerzo"                                                                               | 2026-10-10 | El PDF no tiene estructura semántica                                                                                   |
+| D-10 | Lecturas cortas desde feed estático (GitHub Actions + Pages) + pack offline + avisos locales                         | 2026-10-10 | Sin servidor que mantener, privacidad, compatible con F-Droid                                                          |
+| D-11 | Contenido solo de dominio público o licencia libre, curado manualmente en el MVP                                     | 2026-10-10 | Riesgo legal de scrapear prensa y traducciones con copyright                                                           |
+| D-12 | Sin rachas, logros ni notificaciones de reenganche                                                                   | 2026-10-10 | Coherencia con el propósito                                                                                            |
+| D-13 | Fuente de lectura por defecto: Libron; alternativas OpenDyslexic y monoespaciada                                     | 2026-10-10 | Preferencia del autor; OFL                                                                                             |
+| D-14 | Nombre definitivo: **D-TOX**. La app vive en este mismo repo (proyecto Android Studio en la raíz)                    | 2026-10-10 | Decisión del autor                                                                                                     |
+| D-15 | ~~Licencia no comercial (PolyForm Noncommercial)~~ — **sustituida por D-16**                                         | 2026-10-10 | El autor prefiere open source completo                                                                                 |
 | D-16 | Licencia del código: **GPL-3.0-or-later** (open source completo, copyleft: los derivados deben seguir siendo libres) | 2026-10-10 | Open source real, compatible con F-Droid y Play Store; el copyleft es lo más cercano a "que no se copie para cerrarlo" |
-| D-17 | `applicationId`: `dev.d1ito.dtox` | 2026-10-10 | Decisión del autor; difícil de cambiar tras publicar |
+| D-17 | `applicationId`: `dev.d1ito.dtox`                                                                                    | 2026-10-10 | Decisión del autor; difícil de cambiar tras publicar                                                                   |
 
 ## Preguntas abiertas
 
-| # | Pregunta | Opciones / notas | Bloquea |
-|---|---|---|---|
-| Q-03 | **Licencia del contenido** | Código y contenido pueden tener licencias distintas; ¿repo aparte `dtox-content`? | Fase 3 |
-| Q-04 | **Verificar `LICENSE` de Libron** | La búsqueda indica OFL (derivada de Readerly), pero hay que leer el archivo y comprobar nombre reservado | Fase 0 (empaquetado) |
-| Q-05 | **Alcance de PDF en v1** | ¿Solo extracción o también fallback visual? | Fase 2 |
-| Q-06 | **DI**: manual vs Hilt | Decidir al inicializar; proyecto pequeño | Fase 0 |
-| Q-07 | **Calendario editorial**: ¿cuántas lecturas nuevas al día en el feed? | Propuesta: 1 por categoría y día, acumulativas | Fase 3 |
-| Q-08 | **Cómo se muestran notas en el lector** | Punto `·` + panel, o solo en lista | Fase 2 |
-| Q-09 | **Tabla de contenidos para TXT/MD** | Derivar de encabezados; en TXT sin encabezados, un capítulo único | Fase 1 |
-| Q-10 | **Hash para libros grandes** | SHA-256 del archivo completo; considerar hash parcial si es lento | Fase 1 |
+| #    | Pregunta                                                              | Opciones / notas                                                                                         | Bloquea              |
+| ---- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------- |
+| Q-03 | **Licencia del contenido**                                            | Código y contenido pueden tener licencias distintas; ¿repo aparte `dtox-content`?                        | Fase 3               |
+| Q-04 | **Verificar `LICENSE` de Libron**                                     | La búsqueda indica OFL (derivada de Readerly), pero hay que leer el archivo y comprobar nombre reservado | Fase 0 (empaquetado) |
+| Q-05 | **Alcance de PDF en v1**                                              | ¿Solo extracción o también fallback visual?                                                              | Fase 2               |
+| Q-06 | **DI**: manual vs Hilt                                                | Decidir al inicializar; proyecto pequeño                                                                 | Fase 0               |
+| Q-07 | **Calendario editorial**: ¿cuántas lecturas nuevas al día en el feed? | Propuesta: 1 por categoría y día, acumulativas                                                           | Fase 3               |
+| Q-08 | **Cómo se muestran notas en el lector**                               | Punto `·` + panel, o solo en lista                                                                       | Fase 2               |
+| Q-09 | **Tabla de contenidos para TXT/MD**                                   | Derivar de encabezados; en TXT sin encabezados, un capítulo único                                        | Fase 1               |
+| Q-10 | **Hash para libros grandes**                                          | SHA-256 del archivo completo; considerar hash parcial si es lento                                        | Fase 1               |
 
 ## Plantilla para nuevas decisiones
 

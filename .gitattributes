@@ -1,0 +1,5 @@
+# Custom merge drivers (registered by scripts/setup.sh) so parallel branches
+# that each bump the version never conflict on these lines.
+VERSION merge=dtox-version
+README.md merge=dtox-readme
+* text=auto eol=lf

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Clean merge commits get highest(parent versions) + 1. Fast-forwards are left untouched.
+[ "${DTOX_SKIP_VERSION_HOOK:-}" = "1" ] && exit 0
+exec "$(git rev-parse --show-toplevel)/scripts/version.sh" merged

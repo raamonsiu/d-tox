@@ -15,13 +15,13 @@ Objetivo: **mínimo estímulo visual**. Si un elemento no ayuda a leer, no está
 
 Valores **propuestos**; validar contraste AA/AAA con herramienta antes de fijarlos.
 
-| Token | Papel | Sepia | Noche |
-|---|---|---|---|
-| `background` | `#F7F5EF` | `#F1E9D2` | `#0F0F0E` |
-| `text` | `#1C1C1A` | `#2B261B` | `#D9D6CC` |
-| `textMuted` | `#6B6A64` | `#6E6550` | `#8E8B81` |
-| `divider` | `#DEDBD2` | `#D6CCB0` | `#2A2926` |
-| `highlight` | `#E9E4D2` (sombreado) | `#E0D4AE` | `#2E2D27` |
+| Token        | Papel                 | Sepia     | Noche     |
+| ------------ | --------------------- | --------- | --------- |
+| `background` | `#F7F5EF`             | `#F1E9D2` | `#0F0F0E` |
+| `text`       | `#1C1C1A`             | `#2B261B` | `#D9D6CC` |
+| `textMuted`  | `#6B6A64`             | `#6E6550` | `#8E8B81` |
+| `divider`    | `#DEDBD2`             | `#D6CCB0` | `#2A2926` |
+| `highlight`  | `#E9E4D2` (sombreado) | `#E0D4AE` | `#2E2D27` |
 
 - "Blanco" puro y "negro" puro se evitan para reducir el deslumbramiento; el tema noche permite probar `#000000` como opción OLED.
 - Todos los temas usan la misma estructura; solo cambian los valores.
@@ -29,27 +29,27 @@ Valores **propuestos**; validar contraste AA/AAA con herramienta antes de fijarl
 
 ## Tipografía
 
-| Rol | Fuente | Licencia | Notas |
-|---|---|---|---|
-| Lectura principal (por defecto) | **Libron** (revisión de Readerly, optimizada para lectura digital) | SIL OFL | Verificar el archivo `LICENSE` del repo y respetar *Reserved Font Name* si lo hubiera |
-| Accesibilidad | **OpenDyslexic** | SIL OFL | Opción seleccionable |
-| Monoespaciada | **IBM Plex Mono** (propuesta; alternativa JetBrains Mono) | SIL OFL | Opción seleccionable |
-| Interfaz (menús, ajustes) | La misma fuente de lectura elegida | | Una sola familia en toda la app |
+| Rol                             | Fuente                                                             | Licencia | Notas                                                                                 |
+| ------------------------------- | ------------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------- |
+| Lectura principal (por defecto) | **Libron** (revisión de Readerly, optimizada para lectura digital) | SIL OFL  | Verificar el archivo `LICENSE` del repo y respetar _Reserved Font Name_ si lo hubiera |
+| Accesibilidad                   | **OpenDyslexic**                                                   | SIL OFL  | Opción seleccionable                                                                  |
+| Monoespaciada                   | **IBM Plex Mono** (propuesta; alternativa JetBrains Mono)          | SIL OFL  | Opción seleccionable                                                                  |
+| Interfaz (menús, ajustes)       | La misma fuente de lectura elegida                                 |          | Una sola familia en toda la app                                                       |
 
 - Tamaño de texto: 14–28 sp, por defecto 18 sp; interlineado 1.5–1.7; alineación a la izquierda (sin justificar, para evitar "ríos" y espacios irregulares).
 - Se empaquetan los archivos de fuente y se incluye un aviso de licencias dentro de la app.
 
 ### Jerarquía tipo Markdown
 
-| Elemento | Tratamiento |
-|---|---|
-| Título de libro/capítulo (H1) | +40 % de tamaño, peso medio, más espacio superior |
-| H2 | +20 %, peso medio |
-| H3 | Tamaño base, peso medio, mayúscula inicial |
-| Párrafo | Tamaño base, sangría de primera línea o espacio entre párrafos (una de las dos) |
-| Cita | Sangría, `textMuted` |
-| Lista | Guión simple `–`, sangría |
-| Separador | Una línea fina o `·  ·  ·` |
+| Elemento                      | Tratamiento                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------- |
+| Título de libro/capítulo (H1) | +40 % de tamaño, peso medio, más espacio superior                               |
+| H2                            | +20 %, peso medio                                                               |
+| H3                            | Tamaño base, peso medio, mayúscula inicial                                      |
+| Párrafo                       | Tamaño base, sangría de primera línea o espacio entre párrafos (una de las dos) |
+| Cita                          | Sangría, `textMuted`                                                            |
+| Lista                         | Guión simple `–`, sangría                                                       |
+| Separador                     | Una línea fina o `·  ·  ·`                                                      |
 
 El texto corriente **no destaca**: color `text` sobre `background`, sin negritas arbitrarias.
 

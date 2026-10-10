@@ -45,12 +45,12 @@ Una posición es independiente de la paginación (que depende de pantalla, fuent
 }
 ```
 
-| Campo | Significado |
-|---|---|
-| `chapter` | Índice de capítulo (0-based) |
-| `block` | Índice de bloque en el capítulo |
-| `offset` | Carácter dentro del bloque |
-| `quote` | Hasta ~40 caracteres del texto que empieza en la posición; sirve para reubicar si el extractor cambia |
+| Campo     | Significado                                                                                           |
+| --------- | ----------------------------------------------------------------------------------------------------- |
+| `chapter` | Índice de capítulo (0-based)                                                                          |
+| `block`   | Índice de bloque en el capítulo                                                                       |
+| `offset`  | Carácter dentro del bloque                                                                            |
+| `quote`   | Hasta ~40 caracteres del texto que empieza en la posición; sirve para reubicar si el extractor cambia |
 
 **Reubicación:** si al cargar `quote` no coincide con el texto en `(chapter, block, offset)`, se busca en el mismo bloque, luego en el capítulo, y en último caso se cae al inicio del bloque/capítulo.
 
@@ -80,7 +80,7 @@ Ubicación (MVP): almacenamiento interno de la app, `files/books/<bookId>.json`.
       "id": "01JAB7Z…",
       "type": "highlight",
       "start": { "chapter": 2, "block": 3, "offset": 10, "quote": "…" },
-      "end":   { "chapter": 2, "block": 3, "offset": 64 },
+      "end": { "chapter": 2, "block": 3, "offset": 64 },
       "text": "texto resaltado (copia para exportar)",
       "note": null,
       "createdAt": "2026-10-11T07:50:00Z",
@@ -117,7 +117,7 @@ Reglas:
 - Fechas en ISO-8601 UTC.
 - Campos desconocidos se **preservan** al reescribir (compatibilidad hacia delante).
 - Escritura atómica: escribir a `*.tmp`, `fsync`, `rename`.
-- Guardado del progreso con *debounce* (p. ej. 2 s tras cambiar de página y al pasar a segundo plano), no en cada cambio.
+- Guardado del progreso con _debounce_ (p. ej. 2 s tras cambiar de página y al pasar a segundo plano), no en cada cambio.
 - `version` entero; se migra al abrir si es menor.
 
 **Por qué JSON por libro y no una línea global `[idlibro, pos, nota]`:** sigue siendo plano y legible, pero es más fácil de fusionar, de borrar por libro y de validar.
@@ -164,7 +164,7 @@ Feed estático servido por HTTPS (p. ej. GitHub Pages). Detalle del pipeline en 
 
 ### `items/<id>.md`
 
-Markdown simple con *front matter* opcional y el cuerpo usando solo `#`, `##`, párrafos, citas `>` y listas. Se convierte al modelo de documento (§1) con el mismo pipeline que un libro de una sola capa.
+Markdown simple con _front matter_ opcional y el cuerpo usando solo `#`, `##`, párrafos, citas `>` y listas. Se convierte al modelo de documento (§1) con el mismo pipeline que un libro de una sola capa.
 
 ## 7. Caché de índice de biblioteca (derivada)
 

@@ -1,0 +1,9 @@
+LICENSE
+VERSION
+build/
+.gradle/
+.idea/
+local.properties
+node_modules/
+*.kt
+*.kts

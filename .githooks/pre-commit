@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Lint and format check on staged files. Fix formatting with scripts/format.sh.
+set -euo pipefail
+source "$(git rev-parse --show-toplevel)/scripts/lib.sh"
+cd "$(repository_root)"
+
+mapfile -t staged_files < <(git diff --cached --name-only --diff-filter=ACMR)
+[ "${#staged_files[@]}" -eq 0 ] && exit 0
+
+prettier_targets=()
+kotlin_changed=false
+shell_targets=()
+for staged_file in "${staged_files[@]}"; do
+  case "$staged_file" in
+    *.md | *.json | *.yml | *.yaml) prettier_targets+=("$staged_file") ;;
+    *.kt | *.kts) kotlin_changed=true ;;
+    *.sh | .githooks/*) shell_targets+=("$staged_file") ;;
+  esac
+done
+
+if [ "${#prettier_targets[@]}" -gt 0 ]; then
+  echo "[pre-commit] prettier"
+  npx --yes "prettier@${PRETTIER_VERSION}" --check "${prettier_targets[@]}"
+fi
+
+if [ "${#shell_targets[@]}" -gt 0 ]; then
+  echo "[pre-commit] shell syntax"
+  for shell_target in "${shell_targets[@]}"; do bash -n "$shell_target"; done
+  if command -v shellcheck >/dev/null 2>&1; then shellcheck -x "${shell_targets[@]}"; fi
+fi
+
+if [ "$kotlin_changed" = true ]; then
+  if [ -x ./gradlew ]; then
+    echo "[pre-commit] ktlint + detekt"
+    ./gradlew --quiet ktlintCheck detekt
+  else
+    echo "[pre-commit] Kotlin changed but ./gradlew is missing; skipping ktlint/detekt." >&2
+  fi
+fi

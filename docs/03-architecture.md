@@ -2,22 +2,22 @@
 
 ## Stack propuesto
 
-| Área | Elección | Motivo |
-|---|---|---|
-| Lenguaje | Kotlin | Estándar Android |
-| UI | Jetpack Compose (+ Material 3 usado de forma mínima, tema propio) | Control total del aspecto; `HorizontalPager` para las páginas |
-| Arquitectura | MVVM + flujo unidireccional (StateFlow), capas `ui` / `domain` / `data` | Simple y testeable |
-| Concurrencia | Coroutines + Flow | |
-| Preferencias | DataStore (o `settings.json`) | |
-| Índice de biblioteca | Room (caché reconstruible) | Consultas ordenadas y rápidas |
-| Archivos de usuario | JSON con `kotlinx.serialization` | Ver [02-data-formats.md](02-data-formats.md) |
-| EPUB | Parser propio: zip + OPF/spine + `jsoup` para XHTML | El toolkit Readium está pensado para su propio renderizador; aquí renderizamos modelo propio |
-| PDF | PdfBox-Android (Apache 2.0) para texto; `PdfRenderer` del sistema para fallback visual | Evita MuPDF (AGPL) |
-| Red | `HttpURLConnection` / OkHttp; solo descarga del feed | |
-| Trabajo en segundo plano | WorkManager | Persistente tras reinicio |
-| Avisos | `NotificationManager` + alarmas inexactas / WorkManager | Sin permiso de alarmas exactas |
-| DI | Manual (contenedor en `Application`) o Hilt; decidir al inicializar | Proyecto pequeño |
-| Tests | JUnit5/JUnit4, Turbine, Compose UI tests | |
+| Área                     | Elección                                                                               | Motivo                                                                                       |
+| ------------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Lenguaje                 | Kotlin                                                                                 | Estándar Android                                                                             |
+| UI                       | Jetpack Compose (+ Material 3 usado de forma mínima, tema propio)                      | Control total del aspecto; `HorizontalPager` para las páginas                                |
+| Arquitectura             | MVVM + flujo unidireccional (StateFlow), capas `ui` / `domain` / `data`                | Simple y testeable                                                                           |
+| Concurrencia             | Coroutines + Flow                                                                      |                                                                                              |
+| Preferencias             | DataStore (o `settings.json`)                                                          |                                                                                              |
+| Índice de biblioteca     | Room (caché reconstruible)                                                             | Consultas ordenadas y rápidas                                                                |
+| Archivos de usuario      | JSON con `kotlinx.serialization`                                                       | Ver [02-data-formats.md](02-data-formats.md)                                                 |
+| EPUB                     | Parser propio: zip + OPF/spine + `jsoup` para XHTML                                    | El toolkit Readium está pensado para su propio renderizador; aquí renderizamos modelo propio |
+| PDF                      | PdfBox-Android (Apache 2.0) para texto; `PdfRenderer` del sistema para fallback visual | Evita MuPDF (AGPL)                                                                           |
+| Red                      | `HttpURLConnection` / OkHttp; solo descarga del feed                                   |                                                                                              |
+| Trabajo en segundo plano | WorkManager                                                                            | Persistente tras reinicio                                                                    |
+| Avisos                   | `NotificationManager` + alarmas inexactas / WorkManager                                | Sin permiso de alarmas exactas                                                               |
+| DI                       | Manual (contenedor en `Application`) o Hilt; decidir al inicializar                    | Proyecto pequeño                                                                             |
+| Tests                    | JUnit5/JUnit4, Turbine, Compose UI tests                                               |                                                                                              |
 
 Restricción transversal: **sin dependencias propietarias** (Firebase, GMS, analítica) para ser compatible con F-Droid.
 
@@ -104,23 +104,23 @@ Ventajas: coste cero, sin FCM, sin datos de usuario en el servidor, auditable. D
 
 ## Almacenamiento y permisos
 
-| Dato | Lugar | Permiso |
-|---|---|---|
-| Libros importados | `files/library/` | Ninguno (SAF) |
-| Progreso/notas | `files/books/*.json` | Ninguno |
-| Caché parseada | `cache/` | Ninguno |
-| Lecturas cortas | `files/shortreads/` | Ninguno |
-| Red | feed HTTPS | `INTERNET` |
-| Avisos | | `POST_NOTIFICATIONS` (Android 13+) |
+| Dato              | Lugar                | Permiso                            |
+| ----------------- | -------------------- | ---------------------------------- |
+| Libros importados | `files/library/`     | Ninguno (SAF)                      |
+| Progreso/notas    | `files/books/*.json` | Ninguno                            |
+| Caché parseada    | `cache/`             | Ninguno                            |
+| Lecturas cortas   | `files/shortreads/`  | Ninguno                            |
+| Red               | feed HTTPS           | `INTERNET`                         |
+| Avisos            |                      | `POST_NOTIFICATIONS` (Android 13+) |
 
 No se solicita `MANAGE_EXTERNAL_STORAGE`, `READ_EXTERNAL_STORAGE`, `SCHEDULE_EXACT_ALARM` ni ubicación.
 
 ## Riesgos técnicos
 
-| Riesgo | Mitigación |
-|---|---|
-| Paginación lenta en libros grandes | Paginación por capítulo e incremental; caché; medir en dispositivo de gama baja pronto |
-| EPUB mal formados | Parser tolerante; set de EPUBs de prueba (Gutenberg, Standard Ebooks, generados por Calibre) |
-| PDF con mala extracción | Marcado "mejor esfuerzo", fallback visual, no bloquear el MVP |
-| Selección de texto precisa en páginas custom | Prototipo temprano; si es costoso, resaltado por párrafo en v1 y afinar luego |
+| Riesgo                                          | Mitigación                                                                                     |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Paginación lenta en libros grandes              | Paginación por capítulo e incremental; caché; medir en dispositivo de gama baja pronto         |
+| EPUB mal formados                               | Parser tolerante; set de EPUBs de prueba (Gutenberg, Standard Ebooks, generados por Calibre)   |
+| PDF con mala extracción                         | Marcado "mejor esfuerzo", fallback visual, no bloquear el MVP                                  |
+| Selección de texto precisa en páginas custom    | Prototipo temprano; si es costoso, resaltado por párrafo en v1 y afinar luego                  |
 | Fabricantes que matan trabajos en segundo plano | Avisos inexactos aceptables; documentar la limitación; botón "ver lecturas" siempre disponible |

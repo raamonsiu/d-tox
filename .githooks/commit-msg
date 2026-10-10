@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# The first line of every commit must be a valid slug.
+set -euo pipefail
+exec "$(git rev-parse --show-toplevel)/scripts/validate-slug.sh" "$(head -n 1 "$1")"
