@@ -5,6 +5,34 @@ plugins {
     alias(libs.plugins.detekt)
 }
 
+val versionFile: RegularFile = rootProject.layout.projectDirectory.file("VERSION")
+val appVersionName: String =
+    providers
+        .fileContents(versionFile)
+        .asText
+        .get()
+        .trim()
+
+/**
+ * Maps "major.minor.fix" to a monotonic versionCode: major * 10_000_000 + minor * 10_000 + fix.
+ *
+ * @throws IllegalArgumentException if the version is not three numbers or minor/fix overflow.
+ */
+fun versionCodeOf(versionName: String): Int {
+    val majorWeight = 10_000_000
+    val minorWeight = 10_000
+    val parts = versionName.split(".")
+    require(parts.size == 3) { "VERSION must be major.minor.fix, was '$versionName'" }
+    val (major, minor, fix) =
+        parts.map { part ->
+            requireNotNull(part.toIntOrNull()) { "VERSION part '$part' is not a number" }
+        }
+    require(minor < majorWeight / minorWeight && fix < minorWeight) {
+        "minor/fix out of range in '$versionName'"
+    }
+    return major * majorWeight + minor * minorWeight + fix
+}
+
 android {
     namespace = "dev.d1ito.dtox"
     compileSdk {
@@ -18,8 +46,8 @@ android {
         applicationId = "dev.d1ito.dtox"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = versionCodeOf(appVersionName)
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
