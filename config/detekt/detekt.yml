@@ -1,0 +1,55 @@
+# Overrides on top of detekt defaults (set buildUponDefaultConfig = true in Gradle).
+# Wire-up when the Android project is created:
+#   detekt { config.setFrom("$rootDir/config/detekt/detekt.yml"); buildUponDefaultConfig = true }
+build:
+  maxIssues: 0
+
+complexity:
+  LongMethod:
+    threshold: 30
+  CyclomaticComplexMethod:
+    threshold: 10
+  LongParameterList:
+    functionThreshold: 5
+    constructorThreshold: 7
+  NestedBlockDepth:
+    threshold: 3
+  TooManyFunctions:
+    thresholdInFiles: 12
+    thresholdInClasses: 12
+    thresholdInInterfaces: 10
+  LargeClass:
+    threshold: 200
+
+naming:
+  VariableMinLength:
+    active: true
+    minimumVariableNameLength: 3
+  FunctionMinLength:
+    active: true
+    minimumFunctionNameLength: 3
+
+style:
+  MaxLineLength:
+    maxLineLength: 100
+  MagicNumber:
+    active: true
+    ignoreNumbers: ["-1", "0", "1", "2"]
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+  ReturnCount:
+    max: 3
+  ForbiddenComment:
+    active: true
+    values: ["TODO:", "FIXME:", "STOPSHIP:"]
+    allowedPatterns: "DTOX-\\d+"
+
+potential-bugs:
+  UnsafeCallOnNullableType:
+    active: true
+
+exceptions:
+  SwallowedException:
+    active: true
+  TooGenericExceptionCaught:
+    active: true

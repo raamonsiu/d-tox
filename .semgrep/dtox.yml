@@ -1,0 +1,40 @@
+rules:
+  - id: dtox-no-not-null-assertion
+    languages: [generic]
+    severity: ERROR
+    message: Avoid "!!". Handle null explicitly (safe call, requireNotNull with message, or a sealed result).
+    paths:
+      include: ["*.kt"]
+    pattern-regex: '[A-Za-z0-9_)\]]!!'
+
+  - id: dtox-no-console-output
+    languages: [generic]
+    severity: ERROR
+    message: No println/printStackTrace. Use the app logger and never log personal data.
+    paths:
+      include: ["*.kt"]
+    pattern-regex: '\b(println|printStackTrace)\('
+
+  - id: dtox-no-global-scope
+    languages: [generic]
+    severity: ERROR
+    message: GlobalScope leaks work. Use a structured, lifecycle-bound CoroutineScope.
+    paths:
+      include: ["*.kt"]
+    pattern-regex: '\bGlobalScope\.'
+
+  - id: dtox-no-cleartext-http
+    languages: [generic]
+    severity: ERROR
+    message: Cleartext HTTP is not allowed. Use HTTPS.
+    paths:
+      include: ["*.kt", "*.xml"]
+    pattern-regex: '"http://(?!localhost|127\.0\.0\.1|10\.0\.2\.2)'
+
+  - id: dtox-no-tracking-sdk
+    languages: [generic]
+    severity: ERROR
+    message: Analytics, ads and proprietary Google services are forbidden (privacy, F-Droid). See docs/01-requirements.md RNF-02.
+    paths:
+      include: ["*.kt", "*.kts", "*.toml", "*.gradle"]
+    pattern-regex: '(com\.google\.firebase|com\.google\.android\.gms|com\.facebook\.|io\.sentry|com\.crashlytics|com\.appsflyer|com\.mixpanel)'

@@ -1,0 +1,105 @@
+name: PR checks
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  conventions:
+    name: Slug and version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate PR title, branch and commit subjects
+        env:
+          PULL_REQUEST_TITLE: ${{ github.event.pull_request.title }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+          BASE_BRANCH: ${{ github.base_ref }}
+        run: |
+          scripts/validate-slug.sh "$PULL_REQUEST_TITLE" "$HEAD_BRANCH"
+          git log --format=%s "origin/${BASE_BRANCH}..HEAD" | while IFS= read -r subject; do
+            scripts/validate-slug.sh "$subject"
+          done
+      - name: VERSION is greater than base and matches README
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+        run: scripts/version.sh check "origin/${BASE_BRANCH}"
+
+  approvals:
+    name: Dependency and deletion approval
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require maintainer labels for new dependencies and deletions
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+          DEPENDENCIES_APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'deps-approved') }}
+          DELETIONS_APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'deletion-approved') }}
+        run: |
+          range="origin/${BASE_BRANCH}...HEAD"
+          if git diff --name-only "$range" | grep -E '(^|/)(libs\.versions\.toml|build\.gradle(\.kts)?|settings\.gradle(\.kts)?)$'; then
+            if [ "$DEPENDENCIES_APPROVED" != "true" ]; then
+              echo "::error::Dependency files changed. A maintainer must verify origin, license and authorship and add the 'deps-approved' label."
+              exit 1
+            fi
+          fi
+          if git diff --name-only --diff-filter=D "$range" | grep .; then
+            if [ "$DELETIONS_APPROVED" != "true" ]; then
+              echo "::error::Files are deleted. A maintainer must verify and add the 'deletion-approved' label."
+              exit 1
+            fi
+          fi
+
+  format:
+    name: Prettier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check formatting
+        run: |
+          source scripts/lib.sh
+          npx --yes "prettier@${PRETTIER_VERSION}" --check .
+
+  semgrep:
+    name: Semgrep
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan
+        run: >-
+          semgrep scan --error --metrics=off
+          --config p/security-audit --config p/kotlin --config .semgrep/
+
+  android:
+    name: Kotlin lint, Android lint and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip until the Android project exists
+        if: hashFiles('gradlew') == ''
+        run: echo "::notice::No ./gradlew yet; Kotlin checks are skipped."
+      - uses: actions/setup-java@v4
+        if: hashFiles('gradlew') != ''
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: ktlint, detekt, Android lint, unit tests
+        if: hashFiles('gradlew') != ''
+        run: ./gradlew --no-daemon ktlintCheck detekt lintDebug testDebugUnitTest
