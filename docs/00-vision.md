@@ -46,5 +46,5 @@ Existen buenos lectores (KOReader, Librera, Moon+ Reader, Readest…). D-TOX se 
 
 ## Distribución
 
-- Código público en GitHub, libre de usar y modificar pero **sin uso comercial** por terceros (licencia no comercial, ver D-15 y Q-01 en [07-decisions.md](07-decisions.md)). Nota: por ser no comercial, no se considera "open source" en sentido estricto.
-- Posible publicación futura en Play Store por parte del autor. F-Droid solo admite licencias libres, por lo que quedaría descartado salvo que cambie la licencia. Se mantiene igualmente la ausencia de dependencias propietarias (Firebase, Google Play Services) por privacidad y simplicidad.
+- Código abierto en GitHub bajo **GPL-3.0-or-later** (ver D-16 en [07-decisions.md](07-decisions.md)).
+- Publicación futura posible en Play Store y F-Droid; por eso se evitan dependencias propietarias (Firebase, Google Play Services) desde el inicio.

@@ -18,14 +18,14 @@
 | D-12 | Sin rachas, logros ni notificaciones de reenganche | 2026-10-10 | Coherencia con el propósito |
 | D-13 | Fuente de lectura por defecto: Libron; alternativas OpenDyslexic y monoespaciada | 2026-10-10 | Preferencia del autor; OFL |
 | D-14 | Nombre definitivo: **D-TOX**. La app vive en este mismo repo (proyecto Android Studio en la raíz) | 2026-10-10 | Decisión del autor |
-| D-15 | Licencia del código: libre de usar y modificar, pero **sin uso comercial** por terceros. Candidata: PolyForm Noncommercial 1.0.0 (pendiente de confirmar y añadir `LICENSE`) | 2026-10-10 | Decisión del autor; ver Q-01 |
+| D-15 | ~~Licencia no comercial (PolyForm Noncommercial)~~ — **sustituida por D-16** | 2026-10-10 | El autor prefiere open source completo |
+| D-16 | Licencia del código: **GPL-3.0-or-later** (open source completo, copyleft: los derivados deben seguir siendo libres) | 2026-10-10 | Open source real, compatible con F-Droid y Play Store; el copyleft es lo más cercano a "que no se copie para cerrarlo" |
+| D-17 | `applicationId`: `dev.d1ito.dtox` | 2026-10-10 | Decisión del autor; difícil de cambiar tras publicar |
 
 ## Preguntas abiertas
 
 | # | Pregunta | Opciones / notas | Bloquea |
 |---|---|---|---|
-| Q-01 | **Texto de la licencia** | Intención: no comercial. Una licencia que prohíbe uso comercial **no es "open source" según OSI/FSF**, y **F-Droid no la acepta**; Play Store sí. Candidata: PolyForm Noncommercial 1.0.0 (alternativas: CC BY-NC-SA, poco recomendada para software). Confirmar y añadir `LICENSE` | Fase 0 |
-| Q-02 | **`applicationId`** | Nombre ya decidido (D-TOX); falta el id de paquete al crear el proyecto en Android Studio, p. ej. `dev.<usuario>.dtox`. Es difícil de cambiar tras publicar | Fase 0 |
 | Q-03 | **Licencia del contenido** | Código y contenido pueden tener licencias distintas; ¿repo aparte `dtox-content`? | Fase 3 |
 | Q-04 | **Verificar `LICENSE` de Libron** | La búsqueda indica OFL (derivada de Readerly), pero hay que leer el archivo y comprobar nombre reservado | Fase 0 (empaquetado) |
 | Q-05 | **Alcance de PDF en v1** | ¿Solo extracción o también fallback visual? | Fase 2 |

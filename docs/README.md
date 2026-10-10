@@ -22,4 +22,4 @@ D-TOX es una app Android de lectura pensada para la desintoxicación digital: un
 - Lector de **EPUB / TXT / Markdown** (PDF en modo "mejor esfuerzo"), texto reflowable y paginado, estética mínima.
 - Progreso, notas y resaltados en **archivos planos** (JSON) anclados al contenido, no a la página.
 - **Lecturas cortas** (5/10/20 min) de filosofía clásica y divulgación científica, en español, desde un feed estático + pack offline, avisadas con notificaciones locales configurables.
-- Sin cuentas, sin analítica, sin servidores propios, sin sincronización (MVP). Código público en GitHub con licencia no comercial.
+- Sin cuentas, sin analítica, sin servidores propios, sin sincronización (MVP). Código abierto (GPL-3.0-or-later) en GitHub.

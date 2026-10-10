@@ -19,7 +19,7 @@
 | DI | Manual (contenedor en `Application`) o Hilt; decidir al inicializar | Proyecto pequeño |
 | Tests | JUnit5/JUnit4, Turbine, Compose UI tests | |
 
-Restricción transversal: **sin dependencias propietarias** (Firebase, GMS, analítica) por privacidad y para mantener abierta la puerta a F-Droid si la licencia cambiara.
+Restricción transversal: **sin dependencias propietarias** (Firebase, GMS, analítica) para ser compatible con F-Droid.
 
 ## Capas y módulos
 
