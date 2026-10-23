@@ -7,12 +7,13 @@ Orden pensado para validar antes lo más arriesgado técnicamente (paginación, 
 - [x] Cerrar preguntas abiertas de [07-decisions.md](07-decisions.md) (licencia, nombre, `applicationId`).
 - [x] Harness estático: [CLAUDE.md](../CLAUDE.md), hooks, versionado, plantillas, CI de PR.
 - [ ] Harness dinámico (skills/subagentes/comandos útiles) cuando exista código.
-- [ ] Inicializar proyecto en Android Studio (Kotlin, Compose, `minSdk 26`).
+- [x] Inicializar proyecto en Android Studio (Kotlin, Compose, `minSdk 26`).
 - [x] Repositorio Git, CI de PR (slug, versión, Prettier, Semgrep), plantillas.
-- [ ] Cablear en Gradle: ktlint, detekt (`config/detekt/detekt.yml`), `versionName/versionCode` desde `VERSION`.
-- [ ] En GitHub: proteger `main`, exigir los checks, crear etiquetas `deps-approved`, `deletion-approved`, `ready`, `in-progress` y `blocked`. Probar `scripts/issue.sh` con `gh` y remoto reales (aún sin probar).
+- [x] Cablear en Gradle: ktlint, detekt (`config/detekt/detekt.yml`), `versionName/versionCode` desde `VERSION`.
+- [x] En GitHub: crear etiquetas `deps-approved`, `deletion-approved`, `ready`, `in-progress` y `blocked`. Probar `scripts/issue.sh` con `gh` y remoto reales.
+- [ ] En GitHub: proteger `main` y exigir los checks.
 - [ ] Recopilar corpus de prueba: 10 EPUB variados (Gutenberg, Standard Ebooks, Calibre), 5 PDF, TXT/MD.
-- [ ] Empaquetar fuentes (Libron, OpenDyslexic, IBM Plex Mono) con sus licencias.
+- [ ] Empaquetar fuentes con sus licencias: Libron (hecho), OpenDyslexic e IBM Plex Mono (con el selector de fuente).
 
 **Salida:** proyecto compila, abre una pantalla vacía con el tema propio y pasa CI.
 
