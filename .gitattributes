@@ -3,3 +3,4 @@
 VERSION merge=dtox-version
 README.md merge=dtox-readme
 * text=auto eol=lf
+*.ttf binary

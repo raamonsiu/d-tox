@@ -28,13 +28,15 @@
 | D-22 | Librerías nuevas y borrados requieren aprobación del dev (etiquetas `deps-approved` / `deletion-approved` en PR)                                  | 2026-10-10 | Decisión del autor                                                                                                     |
 | D-23 | Issues mínimos (≈ ≤150 líneas, ≤5 archivos)                                                                                                       | 2026-10-10 | Decisión del autor                                                                                                     |
 | D-24 | Coordinación por GitHub Issues: reclamar = assignee + etiqueta `in-progress` + rama slug; `scripts/issue.sh` lo automatiza para humanos y agentes | 2026-10-10 | Evitar trabajo duplicado entre devs                                                                                    |
+| D-25 | Libron v0.31 empaquetada **sin modificar** (Regular, Italic, Bold, BoldItalic) con su `LICENSE` en `res/raw/libron_license.txt`                   | 2026-10-23 | Resuelve Q-04: SIL OFL 1.1 con _Reserved Font Name_ "Libron"; subsetear o editar obligaría a renombrarla               |
+| D-26 | Títulos en Libron Bold en lugar de "peso medio"                                                                                                   | 2026-10-23 | Libron no tiene peso medio; evitar pesos sintetizados                                                                  |
 
 ## Preguntas abiertas
 
 | #    | Pregunta                                                              | Opciones / notas                                                                                         | Bloquea              |
 | ---- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------- |
 | Q-03 | **Licencia del contenido**                                            | Código y contenido pueden tener licencias distintas; ¿repo aparte `dtox-content`?                        | Fase 3               |
-| Q-04 | **Verificar `LICENSE` de Libron**                                     | La búsqueda indica OFL (derivada de Readerly), pero hay que leer el archivo y comprobar nombre reservado | Fase 0 (empaquetado) |
+| Q-04 | ~~**Verificar `LICENSE` de Libron**~~ — **resuelta en D-25**          | La búsqueda indica OFL (derivada de Readerly), pero hay que leer el archivo y comprobar nombre reservado | Fase 0 (empaquetado) |
 | Q-05 | **Alcance de PDF en v1**                                              | ¿Solo extracción o también fallback visual?                                                              | Fase 2               |
 | Q-06 | **DI**: manual vs Hilt                                                | Decidir al inicializar; proyecto pequeño                                                                 | Fase 0               |
 | Q-07 | **Calendario editorial**: ¿cuántas lecturas nuevas al día en el feed? | Propuesta: 1 por categoría y día, acumulativas                                                           | Fase 3               |

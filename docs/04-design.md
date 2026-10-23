@@ -41,11 +41,13 @@ Valores **propuestos**; validar contraste AA/AAA con herramienta antes de fijarl
 
 ### Jerarquía tipo Markdown
 
+Libron solo tiene Regular y Bold (más cursivas): los títulos usan Bold en vez de un peso medio (D-26).
+
 | Elemento                      | Tratamiento                                                                     |
 | ----------------------------- | ------------------------------------------------------------------------------- |
-| Título de libro/capítulo (H1) | +40 % de tamaño, peso medio, más espacio superior                               |
-| H2                            | +20 %, peso medio                                                               |
-| H3                            | Tamaño base, peso medio, mayúscula inicial                                      |
+| Título de libro/capítulo (H1) | +40 % de tamaño, negrita, más espacio superior                                  |
+| H2                            | +20 %, negrita                                                                  |
+| H3                            | Tamaño base, negrita, mayúscula inicial                                         |
 | Párrafo                       | Tamaño base, sangría de primera línea o espacio entre párrafos (una de las dos) |
 | Cita                          | Sangría, `textMuted`                                                            |
 | Lista                         | Guión simple `–`, sangría                                                       |
