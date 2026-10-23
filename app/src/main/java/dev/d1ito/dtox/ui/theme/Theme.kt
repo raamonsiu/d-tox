@@ -1,59 +1,80 @@
 package dev.d1ito.dtox.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 
-private val DarkColorScheme =
-    darkColorScheme(
-        primary = Purple80,
-        secondary = PurpleGrey80,
-        tertiary = Pink80,
-    )
+private val LocalReadingPalette = staticCompositionLocalOf { ReadingPalettes.Paper }
 
-private val LightColorScheme =
-    lightColorScheme(
-        primary = Purple40,
-        secondary = PurpleGrey40,
-        tertiary = Pink40,
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-     */
-    )
-
+/**
+ * Applies the D-TOX theme: a [ReadingPalette] plus the reading [Typography].
+ *
+ * @param palette theme to apply; by default follows the system light/dark mode (paper/night).
+ * @param content UI drawn with the theme.
+ */
 @Composable
 fun DTOXTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    palette: ReadingPalette = systemReadingPalette(),
     content: @Composable () -> Unit,
 ) {
-    val colorScheme =
-        when {
-            dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-                val context = LocalContext.current
-                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            }
+    CompositionLocalProvider(LocalReadingPalette provides palette) {
+        MaterialTheme(
+            colorScheme = palette.toColorScheme(),
+            typography = Typography,
+            content = content,
+        )
+    }
+}
 
-            darkTheme -> DarkColorScheme
-            else -> LightColorScheme
-        }
+/** Paper in light mode and night in dark mode, following the system setting. */
+@Composable
+private fun systemReadingPalette(): ReadingPalette =
+    if (isSystemInDarkTheme()) ReadingPalettes.Night else ReadingPalettes.Paper
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content,
+/** Access to the current D-TOX theme values from composables. */
+object DTOXTheme {
+    val palette: ReadingPalette
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalReadingPalette.current
+}
+
+/**
+ * Maps the palette onto every Material color role so no Material component can introduce an
+ * accent, a tonal tint or an elevation color.
+ */
+private fun ReadingPalette.toColorScheme(): ColorScheme {
+    val baseScheme = if (isDark) darkColorScheme() else lightColorScheme()
+    return baseScheme.copy(
+        primary = text,
+        onPrimary = background,
+        primaryContainer = highlight,
+        onPrimaryContainer = text,
+        secondary = textMuted,
+        onSecondary = background,
+        secondaryContainer = highlight,
+        onSecondaryContainer = text,
+        tertiary = textMuted,
+        onTertiary = background,
+        background = background,
+        onBackground = text,
+        surface = background,
+        onSurface = text,
+        surfaceVariant = highlight,
+        onSurfaceVariant = textMuted,
+        surfaceTint = background,
+        surfaceContainerLowest = background,
+        surfaceContainerLow = background,
+        surfaceContainer = background,
+        surfaceContainerHigh = background,
+        surfaceContainerHighest = background,
+        outline = divider,
+        outlineVariant = divider,
     )
 }
