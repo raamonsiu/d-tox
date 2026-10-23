@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Light or dark platform base; values-night swaps it so the launch window follows the system. -->
+    <style name="Base.Theme.DTOX" parent="android:Theme.Material.Light.NoActionBar" />
+    <bool name="light_system_bars">true</bool>
 
-    <style name="Theme.DTOX" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Paints the launch window with the reading background so there is no flash before Compose. -->
+    <style name="Theme.DTOX" parent="Base.Theme.DTOX">
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:statusBarColor">@color/window_background</item>
+        <item name="android:navigationBarColor">@color/window_background</item>
+        <item name="android:windowLightStatusBar">@bool/light_system_bars</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">@bool/light_system_bars</item>
+    </style>
 </resources>

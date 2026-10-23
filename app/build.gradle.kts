@@ -68,6 +68,13 @@ android {
     }
 }
 
+// LaunchWindowColorTest reads these XML files by path; declare them so edits re-run the tests.
+tasks.withType<Test>().configureEach {
+    inputs
+        .files(fileTree("src/main/res") { include("values*/colors.xml") })
+        .withPropertyName("launchWindowColors")
+}
+
 detekt {
     config.setFrom(rootProject.file("config/detekt/detekt.yml"))
     buildUponDefaultConfig = true
