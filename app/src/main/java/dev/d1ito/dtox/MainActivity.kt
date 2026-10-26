@@ -73,7 +73,13 @@ private fun Reader(
         is ReaderUiState.Reading ->
             ReaderScreen(
                 chapter = current.chapter,
-                position = ReadingPosition(current.position, viewModel::onPageSettled),
+                position =
+                    ReadingPosition(
+                        restoredAnchor = current.position,
+                        onPageSettled = viewModel::onPageSettled,
+                        onNextChapter = viewModel::onNextChapter,
+                        onPreviousChapter = viewModel::onPreviousChapter,
+                    ),
                 paginationDispatcher = paginationDispatcher,
             )
     }

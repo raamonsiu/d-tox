@@ -11,6 +11,7 @@ import dev.d1ito.dtox.domain.Anchor
 import dev.d1ito.dtox.domain.Book
 import dev.d1ito.dtox.domain.Chapter
 import dev.d1ito.dtox.domain.anchorAt
+import dev.d1ito.dtox.domain.textOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
@@ -104,6 +105,22 @@ class ReaderViewModel(
         }
     }
 
+    /** Turning past the last page: opens the first page of the next chapter, if there is one. */
+    fun onNextChapter() {
+        val reading = mutableState.value as? ReaderUiState.Reading ?: return
+        val next = reading.position.chapter + 1
+        if (next > reading.book.chapters.lastIndex) return
+        onPageSettled(chapterStart(next))
+    }
+
+    /** Turning back from the first page: opens the last page of the previous chapter, if any. */
+    fun onPreviousChapter() {
+        val reading = mutableState.value as? ReaderUiState.Reading ?: return
+        val previous = reading.position.chapter - 1
+        if (previous < 0) return
+        onPageSettled(chapterEnd(reading.book.chapters[previous]))
+    }
+
     /** Saves the reading position now instead of after the debounce; call it on `onStop`. */
     fun flushProgress() = progressKeeper.flush()
 
@@ -168,4 +185,21 @@ class ReaderViewModel(
 }
 
 /** The first position of any book. Zeros are never negative, so creating it cannot fail. */
-private val bookStart: Anchor = Anchor.create(chapter = 0, block = 0, offset = 0).getOrThrow()
+private val bookStart: Anchor = chapterStart(0)
+
+/** First position of chapter [index], which is never negative. */
+private fun chapterStart(index: Int): Anchor = Anchor.create(index, 0, 0).getOrThrow()
+
+/**
+ * Position right after the last character of [chapter]: the paginator maps it to the last page.
+ * Every index and length is non-negative, so creating it cannot fail.
+ */
+private fun chapterEnd(chapter: Chapter): Anchor {
+    val lastBlock = chapter.blocks.lastIndex.coerceAtLeast(0)
+    val textLength =
+        chapter.blocks
+            .getOrNull(lastBlock)
+            ?.textOrNull
+            ?.length ?: 0
+    return Anchor.create(chapter.index, lastBlock, textLength).getOrThrow()
+}

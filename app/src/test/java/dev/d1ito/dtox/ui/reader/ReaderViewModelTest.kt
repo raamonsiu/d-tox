@@ -136,6 +136,59 @@ class ReaderViewModelTest {
         assertEquals(ReaderUiState.Reading(book, anchor(0, 0, 2)), restored.state.value)
     }
 
+    @Test
+    fun nextChapter_opensTheStartOfTheFollowingChapter() {
+        val viewModel = readerViewModel(SavedStateHandle()) { Result.success(book) }
+
+        viewModel.onNextChapter()
+
+        assertEquals(anchor(1, 0, 0), (viewModel.state.value as ReaderUiState.Reading).position)
+    }
+
+    @Test
+    fun previousChapter_opensTheEndOfThePreviousChapter() {
+        val viewModel = readerViewModel(SavedStateHandle()) { Result.success(book) }
+        viewModel.onPageSettled(anchor(1, 0, 0))
+
+        viewModel.onPreviousChapter()
+
+        // Right after the last character of "Texto 0": the paginator shows its last page.
+        val position = (viewModel.state.value as ReaderUiState.Reading).position
+        assertEquals(anchor(0, 0, "Texto 0".length), position)
+    }
+
+    @Test
+    fun chapterTurns_pastTheBookEdges_areIgnored() {
+        val viewModel = readerViewModel(SavedStateHandle()) { Result.success(book) }
+
+        viewModel.onPreviousChapter()
+        assertEquals(anchor(0, 0, 0), (viewModel.state.value as ReaderUiState.Reading).position)
+
+        viewModel.onNextChapter()
+        viewModel.onNextChapter()
+        assertEquals(anchor(1, 0, 0), (viewModel.state.value as ReaderUiState.Reading).position)
+    }
+
+    @Test
+    fun chapterTurn_isSavedLikeAPageTurn() {
+        val store = InMemoryBookDataStore()
+        val savedState = SavedStateHandle()
+        val viewModel = readerViewModel(savedState, store) { Result.success(book) }
+
+        viewModel.onNextChapter()
+        viewModel.flushProgress()
+
+        assertEquals(1, savedState.get<Int>("reader.chapter"))
+        assertEquals(
+            1,
+            store.writes
+                .single()
+                .progress
+                ?.anchor
+                ?.chapter,
+        )
+    }
+
     /** Unconfined: loading and state updates run right away on the test thread. */
     private fun readerViewModel(
         savedState: SavedStateHandle,
