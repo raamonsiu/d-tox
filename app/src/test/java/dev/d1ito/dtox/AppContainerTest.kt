@@ -7,7 +7,9 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import java.io.ByteArrayInputStream
 import java.util.concurrent.Executors
 
@@ -21,18 +23,23 @@ private val SAMPLE_MARKDOWN =
     """.trimIndent()
 
 class AppContainerTest {
+    @get:Rule
+    val temporaryFolder = TemporaryFolder()
+
     private val ioExecutor =
         Executors.newSingleThreadExecutor { task -> Thread(task, IO_THREAD_NAME) }
     private val ioDispatcher = ioExecutor.asCoroutineDispatcher()
     private val readingThreadNames = mutableListOf<String>()
     private var timesTheSampleWasOpened = 0
 
-    private val container =
+    private val container by lazy {
         DefaultAppContainer(
             openSampleBook = {
                 timesTheSampleWasOpened++
                 ThreadRecordingStream(SAMPLE_MARKDOWN.toByteArray(), readingThreadNames)
             },
+            filesDirectory = temporaryFolder.newFolder("files"),
+            cacheDirectory = temporaryFolder.newFolder("cache"),
             dispatchers =
                 AppDispatchers(
                     io = ioDispatcher,
@@ -40,6 +47,7 @@ class AppContainerTest {
                     main = Dispatchers.Unconfined,
                 ),
         )
+    }
 
     @After
     fun closeDispatcher() = ioDispatcher.close()
@@ -54,6 +62,8 @@ class AppContainerTest {
         assertSame(container.textBookParser, container.textBookParser)
         assertSame(container.bookIdentifierCalculator, container.bookIdentifierCalculator)
         assertSame(container.sampleBookLoader, container.sampleBookLoader)
+        assertSame(container.libraryIndex, container.libraryIndex)
+        assertSame(container.bookImporter, container.bookImporter)
     }
 
     @Test
