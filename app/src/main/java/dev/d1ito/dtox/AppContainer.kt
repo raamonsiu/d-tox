@@ -10,7 +10,9 @@ import dev.d1ito.dtox.data.storage.AtomicFileWriter
 import dev.d1ito.dtox.data.storage.BookDataStore
 import dev.d1ito.dtox.data.storage.FileBookDataStore
 import dev.d1ito.dtox.data.storage.FileLibraryIndex
+import dev.d1ito.dtox.data.storage.FileParsedBookCache
 import dev.d1ito.dtox.data.storage.LibraryIndex
+import dev.d1ito.dtox.data.storage.ParsedBookCache
 import dev.d1ito.dtox.data.storage.SyncedAtomicFileWriter
 import dev.d1ito.dtox.ui.reader.SampleBookLoader
 import kotlinx.coroutines.CoroutineDispatcher
@@ -54,6 +56,7 @@ interface AppContainer {
     val bookDataStore: BookDataStore
     val libraryIndex: LibraryIndex
     val bookImporter: BookImporter
+    val parsedBookCache: ParsedBookCache
 }
 
 /**
@@ -62,7 +65,7 @@ interface AppContainer {
  * @param openSampleBook opens a new stream over the bundled sample book.
  * @param filesDirectory private app storage for user data (`files/`); holds `library/`, `books/`
  *   and `library-index.json` (docs/03-architecture.md §Almacenamiento y permisos).
- * @param cacheDirectory private cache (`cache/`) for temporary copies.
+ * @param cacheDirectory private cache (`cache/`) for temporary copies and parsed books.
  * @param dispatchers dispatchers given to every dependency.
  */
 class DefaultAppContainer(
@@ -113,5 +116,9 @@ class DefaultAppContainer(
             fileWriter = fileWriter,
             ioDispatcher = dispatchers.io,
         )
+    }
+
+    override val parsedBookCache: ParsedBookCache by lazy {
+        FileParsedBookCache(File(cacheDirectory, "parsed"), fileWriter, dispatchers.io)
     }
 }
