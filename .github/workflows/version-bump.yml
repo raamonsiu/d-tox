@@ -2,6 +2,8 @@
 # from the PR label: version:major, version:minor or version:fix (no label = fix).
 # pull_request_target runs with this repository's token and the workflow from main; it checks out
 # main only and never runs code from the pull request, so it is safe for forks too.
+# main is protected by a ruleset; only deploy keys bypass it, so the push uses the write deploy key
+# in the VERSION_BUMP_DEPLOY_KEY secret (personal repos cannot let GitHub Actions bypass rulesets).
 name: Version bump
 
 on:
@@ -22,9 +24,10 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+          ssh-key: ${{ secrets.VERSION_BUMP_DEPLOY_KEY }}
       - name: Commit the new version to main
         env:
           PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
           LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
-        # Pushes made with GITHUB_TOKEN do not trigger workflows, so this cannot loop.
+        # Deploy key pushes do trigger workflows, but none runs on push to main: no loop.
         run: scripts/version.sh publish "$PULL_REQUEST_NUMBER" "$LABELS"
