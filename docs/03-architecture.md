@@ -9,7 +9,7 @@
 | Arquitectura             | MVVM + flujo unidireccional (StateFlow), capas `ui` / `domain` / `data`                | Simple y testeable                                                                           |
 | Concurrencia             | Coroutines + Flow                                                                      |                                                                                              |
 | Preferencias             | DataStore (o `settings.json`)                                                          |                                                                                              |
-| Índice de biblioteca     | Room (caché reconstruible)                                                             | Consultas ordenadas y rápidas                                                                |
+| Índice de biblioteca     | JSON propio `files/library-index.json` (caché reconstruible, D-34)                     | Sin librerías; cientos de libros caben en memoria                                            |
 | Archivos de usuario      | JSON con `kotlinx.serialization`                                                       | Ver [02-data-formats.md](02-data-formats.md)                                                 |
 | EPUB                     | Parser propio: zip + OPF/spine + `jsoup` para XHTML                                    | El toolkit Readium está pensado para su propio renderizador; aquí renderizamos modelo propio |
 | TXT / Markdown           | Lector propio para texto plano; `commonmark-java` para Markdown (D-28)                 | El árbol CommonMark se mapea al modelo de documento                                          |
@@ -32,7 +32,7 @@ app/
  ├─ domain/        Modelos (Book, Chapter, Block, Anchor, Annotation), casos de uso
  ├─ data/
  │   ├─ importing/ EpubParser, TextParser, PdfExtractor → Book
- │   ├─ storage/   UserDataStore (JSON por libro), SettingsStore, LibraryIndex (Room)
+ │   ├─ storage/   UserDataStore (JSON por libro), SettingsStore, LibraryIndex (JSON)
  │   ├─ feed/      FeedClient, FeedRepository, ShortReadsCache
  │   └─ notify/    ReminderScheduler, NotificationPublisher
  └─ pagination/    Paginator (texto → páginas), PageCache

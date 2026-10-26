@@ -45,6 +45,17 @@ class DocumentModelTest {
     }
 
     @Test
+    fun bookIdentifier_hexRoundTrips_andFromHexValidates() {
+        val identifier = BookIdentifier.parse(VALID_IDENTIFIER).getOrThrow()
+
+        assertEquals("0123456789abcdef0123456789abcdef", identifier.hex)
+        assertEquals(identifier, BookIdentifier.fromHex(identifier.hex).getOrThrow())
+        listOf("0123", "sha256:0123456789abcdef0123456789abcdef", ".importing-1").forEach { bad ->
+            assertFailsWith<DocumentModelError.InvalidBookIdentifier>(BookIdentifier.fromHex(bad))
+        }
+    }
+
+    @Test
     fun heading_acceptsLevelsOneToThree() {
         (1..3).forEach { level ->
             assertEquals(

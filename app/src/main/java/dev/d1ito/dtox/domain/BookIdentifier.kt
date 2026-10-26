@@ -16,6 +16,9 @@ private val bookIdentifierPattern = Regex("^$IDENTIFIER_PREFIX[0-9a-f]{$DIGEST_H
 value class BookIdentifier private constructor(
     val value: String,
 ) {
+    /** The 32 hex characters without the `sha256:` prefix, safe in any file name. */
+    val hex: String get() = value.removePrefix(IDENTIFIER_PREFIX)
+
     override fun toString(): String = value
 
     companion object {
@@ -31,6 +34,12 @@ value class BookIdentifier private constructor(
             }
 
         /**
+         * @param hex the 32 lowercase hex characters of [BookIdentifier.hex].
+         * @return the identifier, or [DocumentModelError.InvalidBookIdentifier] if malformed.
+         */
+        fun fromHex(hex: String): Result<BookIdentifier> = parse(IDENTIFIER_PREFIX + hex)
+
+        /**
          * @param sha256Digest the full SHA-256 of the original file bytes (32 bytes); only its
          *   first 16 bytes are used, longer input is truncated by design.
          * @return the identifier built from its first 32 hex characters, or
@@ -41,7 +50,7 @@ value class BookIdentifier private constructor(
                 sha256Digest
                     .take(DIGEST_HEX_LENGTH / HEX_CHARACTERS_PER_BYTE)
                     .joinToString(separator = "") { byte -> "%02x".format(byte) }
-            return parse(IDENTIFIER_PREFIX + hexPrefix)
+            return fromHex(hexPrefix)
         }
     }
 }
