@@ -4,6 +4,7 @@ import dev.d1ito.dtox.data.importing.BookIdentifierCalculator
 import dev.d1ito.dtox.data.importing.BookImporter
 import dev.d1ito.dtox.data.importing.BookParser
 import dev.d1ito.dtox.data.importing.EpubBookParser
+import dev.d1ito.dtox.data.importing.LibraryBookLoader
 import dev.d1ito.dtox.data.importing.Sha256BookIdentifierCalculator
 import dev.d1ito.dtox.data.importing.TextBookParser
 import dev.d1ito.dtox.data.storage.AtomicFileWriter
@@ -16,11 +17,9 @@ import dev.d1ito.dtox.data.storage.LibraryIndex
 import dev.d1ito.dtox.data.storage.ParsedBookCache
 import dev.d1ito.dtox.data.storage.ReadingSettingsStore
 import dev.d1ito.dtox.data.storage.SyncedAtomicFileWriter
-import dev.d1ito.dtox.ui.reader.SampleBookLoader
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import java.io.File
-import java.io.InputStream
 
 /**
  * Coroutine dispatchers used by the app, injected so tests can replace them.
@@ -53,41 +52,45 @@ interface AppContainer {
     val dispatchers: AppDispatchers
     val bookIdentifierCalculator: BookIdentifierCalculator
     val textBookParser: BookParser
-    val sampleBookLoader: SampleBookLoader
     val fileWriter: AtomicFileWriter
     val bookDataStore: BookDataStore
     val libraryIndex: LibraryIndex
     val bookImporter: BookImporter
     val parsedBookCache: ParsedBookCache
+    val libraryBookLoader: LibraryBookLoader
     val readingSettingsStore: ReadingSettingsStore
 }
 
 /**
  * Production wiring. Dependencies are created lazily, once, on first use.
  *
- * @param openSampleBook opens a new stream over the bundled sample book.
  * @param filesDirectory private app storage for user data (`files/`); holds `library/`, `books/`,
  *   `library-index.json` and `settings.json` (docs/03-architecture.md §Almacenamiento y permisos).
  * @param cacheDirectory private cache (`cache/`) for temporary copies and parsed books.
  * @param dispatchers dispatchers given to every dependency.
  */
 class DefaultAppContainer(
-    openSampleBook: () -> InputStream,
     filesDirectory: File,
     cacheDirectory: File,
     override val dispatchers: AppDispatchers = AppDispatchers.Production,
 ) : AppContainer {
     private val libraryDirectory = File(filesDirectory, "library")
 
+    /** Parser of each supported lowercase extension, shared by importing and opening. */
+    private val parsersByExtension: Map<String, BookParser> by lazy {
+        mapOf(
+            "epub" to EpubBookParser(dispatchers.io, cacheDirectory),
+            "txt" to textBookParser,
+            "md" to textBookParser,
+            "markdown" to textBookParser,
+        )
+    }
+
     override val bookIdentifierCalculator: BookIdentifierCalculator by lazy {
         Sha256BookIdentifierCalculator(dispatchers.io)
     }
 
     override val textBookParser: BookParser by lazy { TextBookParser(dispatchers.io) }
-
-    override val sampleBookLoader: SampleBookLoader by lazy {
-        SampleBookLoader(openSampleBook, bookIdentifierCalculator, textBookParser)
-    }
 
     override val fileWriter: AtomicFileWriter by lazy { SyncedAtomicFileWriter(dispatchers.io) }
 
@@ -108,13 +111,7 @@ class DefaultAppContainer(
     override val bookImporter: BookImporter by lazy {
         BookImporter(
             libraryDirectory = libraryDirectory,
-            parsersByExtension =
-                mapOf(
-                    "epub" to EpubBookParser(dispatchers.io, cacheDirectory),
-                    "txt" to textBookParser,
-                    "md" to textBookParser,
-                    "markdown" to textBookParser,
-                ),
+            parsersByExtension = parsersByExtension,
             identifierCalculator = bookIdentifierCalculator,
             fileWriter = fileWriter,
             ioDispatcher = dispatchers.io,
@@ -123,6 +120,10 @@ class DefaultAppContainer(
 
     override val parsedBookCache: ParsedBookCache by lazy {
         FileParsedBookCache(File(cacheDirectory, "parsed"), fileWriter, dispatchers.io)
+    }
+
+    override val libraryBookLoader: LibraryBookLoader by lazy {
+        LibraryBookLoader(libraryDirectory, parsersByExtension, parsedBookCache, dispatchers.io)
     }
 
     override val readingSettingsStore: ReadingSettingsStore by lazy {

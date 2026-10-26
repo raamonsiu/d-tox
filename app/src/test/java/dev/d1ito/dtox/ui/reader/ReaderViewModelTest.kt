@@ -1,6 +1,7 @@
 package dev.d1ito.dtox.ui.reader
 
 import androidx.lifecycle.SavedStateHandle
+import dev.d1ito.dtox.data.importing.LoadedBook
 import dev.d1ito.dtox.domain.Anchor
 import dev.d1ito.dtox.domain.Block
 import dev.d1ito.dtox.domain.Book
@@ -8,14 +9,10 @@ import dev.d1ito.dtox.domain.BookIdentifier
 import dev.d1ito.dtox.domain.BookMetadata
 import dev.d1ito.dtox.domain.Chapter
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.awaitCancellation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Test
 import java.io.IOException
-import java.time.Clock
 
 private const val IDENTIFIER = "sha256:0123456789abcdef0123456789abcdef"
 
@@ -74,7 +71,12 @@ class ReaderViewModelTest {
     fun savedPosition_inAChapterTheBookDoesNotHave_opensAtTheStart() {
         val savedState =
             SavedStateHandle(
-                mapOf("reader.chapter" to 9, "reader.block" to 0, "reader.offset" to 0),
+                mapOf(
+                    "reader.book" to IDENTIFIER,
+                    "reader.chapter" to 9,
+                    "reader.block" to 0,
+                    "reader.offset" to 0,
+                ),
             )
 
         val viewModel = readerViewModel(savedState) { Result.success(book) }
@@ -189,21 +191,26 @@ class ReaderViewModelTest {
         )
     }
 
-    /** Unconfined: loading and state updates run right away on the test thread. */
+    /**
+     * A reader with [IDENTIFIER] open, as after tapping it in the library, unless [savedState]
+     * already names an open book (then the ViewModel reopens it by itself). Unconfined: loading and
+     * state updates run right away on the test thread.
+     */
     private fun readerViewModel(
         savedState: SavedStateHandle,
         store: InMemoryBookDataStore = InMemoryBookDataStore(),
         loadBook: suspend () -> Result<Book>,
     ): ReaderViewModel {
-        val scope = CoroutineScope(Dispatchers.Unconfined)
-        val keeper =
-            ReadingProgressKeeper(
-                store = store,
-                clock = Clock.systemUTC(),
-                waitBeforeSaving = { awaitCancellation() },
-                scope = scope,
-            )
-        return ReaderViewModel(savedState, loadBook, "libro.md", keeper, scope)
+        val viewModel =
+            testReaderViewModel(savedState, store) {
+                loadBook().map { book ->
+                    LoadedBook(book, "libro.md")
+                }
+            }
+        if (savedState.get<String>("reader.book") == null) {
+            viewModel.open(BookIdentifier.parse(IDENTIFIER).getOrThrow())
+        }
+        return viewModel
     }
 
     private fun anchor(

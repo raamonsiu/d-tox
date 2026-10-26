@@ -28,7 +28,7 @@ class LibraryContentTest {
     @Test
     fun emptyLibrary_showsTheSentenceAndTheAddAction() {
         var addRequests = 0
-        show(LibraryUiState()) { addRequests++ }
+        show(LibraryUiState(), onAddBook = { addRequests++ })
 
         composeRule.onNodeWithText(text(R.string.library_empty)).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.library_add)).assertIsEnabled().performClick()
@@ -55,6 +55,20 @@ class LibraryContentTest {
     }
 
     @Test
+    fun tappingABook_opensIt() {
+        val opened = mutableListOf<String>()
+        val niebla = entry("fedcba9876543210fedcba9876543210", "Niebla", author = null)
+        show(
+            LibraryUiState(books = listOf(niebla)),
+            onOpenBook = { entry -> opened += entry.title },
+        )
+
+        composeRule.onNodeWithText("Niebla").performClick()
+
+        assertEquals(listOf("Niebla"), opened)
+    }
+
+    @Test
     fun whileImporting_theActionIsDisabled_andAMessageIsShownAfterAFailure() {
         show(LibraryUiState(isImporting = true, message = LibraryMessage.UnsupportedFormat))
 
@@ -64,9 +78,10 @@ class LibraryContentTest {
 
     private fun show(
         state: LibraryUiState,
+        onOpenBook: (LibraryEntry) -> Unit = {},
         onAddBook: () -> Unit = {},
     ) {
-        composeRule.setContent { DTOXTheme { LibraryContent(state, onAddBook) } }
+        composeRule.setContent { DTOXTheme { LibraryContent(state, onAddBook, onOpenBook) } }
     }
 
     private fun entry(

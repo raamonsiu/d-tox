@@ -81,10 +81,9 @@ fun ReaderScreen(
     ) {
         val columnWidth = min(maxWidth, readingColumnMaxWidth)
         val pages =
-            viewportOf(columnWidth)
-                ?.let { size ->
-                    paginatedPages(chapter, size, paginationDispatcher)
-                }?.value
+            viewportOf(columnWidth)?.let { size ->
+                paginatedPages(chapter, size, paginationDispatcher).value?.pagesFor(chapter, size)
+            }
         when {
             pages == null -> Unit // Still paginating: keep the empty page background.
             pages.isFailure -> ReaderMessage(stringResource(R.string.reader_chapter_unavailable))
@@ -129,17 +128,34 @@ class ReadingPosition(
     val onPreviousChapter: () -> Unit = {},
 )
 
+/**
+ * Pages computed for one chapter and viewport. Kept together because a new chapter or viewport
+ * is paginated in the background: until then the previous result is still there, and its pages
+ * must never be drawn with the new chapter's text (their offsets would not match).
+ */
+private data class ChapterPagination(
+    private val chapter: Chapter,
+    private val viewport: Viewport,
+    private val pages: Result<List<Page>>,
+) {
+    /** @return the pages if they were computed for [current] and [currentViewport], else `null`. */
+    fun pagesFor(
+        current: Chapter,
+        currentViewport: Viewport,
+    ): Result<List<Page>>? = pages.takeIf { chapter === current && viewport == currentViewport }
+}
+
 /** Paginates [chapter] on [dispatcher]; `null` until the first result is ready. */
 @Composable
 private fun paginatedPages(
     chapter: Chapter,
     viewport: Viewport,
     dispatcher: CoroutineDispatcher,
-): State<Result<List<Page>>?> {
+): State<ChapterPagination?> {
     val styles = readingStyles()
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
-    return produceState<Result<List<Page>>?>(
+    return produceState<ChapterPagination?>(
         initialValue = null,
         chapter,
         viewport,
@@ -148,7 +164,8 @@ private fun paginatedPages(
         dispatcher,
     ) {
         val measurer = ComposeBlockMeasurer(textMeasurer, styles, density)
-        value = withContext(dispatcher) { Paginator.paginate(chapter, viewport, measurer) }
+        val pages = withContext(dispatcher) { Paginator.paginate(chapter, viewport, measurer) }
+        value = ChapterPagination(chapter, viewport, pages)
     }
 }
 

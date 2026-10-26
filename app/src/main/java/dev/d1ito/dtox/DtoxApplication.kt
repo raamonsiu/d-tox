@@ -6,7 +6,6 @@ import android.app.Application
 class DtoxApplication : Application() {
     val container: AppContainer by lazy {
         DefaultAppContainer(
-            openSampleBook = { resources.openRawResource(R.raw.sample_quijote_chapter_one) },
             filesDirectory = filesDir,
             cacheDirectory = cacheDir,
         )
