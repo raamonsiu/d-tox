@@ -70,3 +70,14 @@ sealed interface Block {
     /** A thematic break between sections. */
     data object Separator : Block
 }
+
+/** The block's text, or `null` for a [Block.Separator], which has none. */
+val Block.textOrNull: String?
+    get() =
+        when (this) {
+            is Block.Heading -> text
+            is Block.Paragraph -> text
+            is Block.Quote -> text
+            is Block.ListItem -> text
+            Block.Separator -> null
+        }
