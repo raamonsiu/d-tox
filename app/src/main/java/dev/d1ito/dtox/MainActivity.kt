@@ -14,7 +14,8 @@ import dev.d1ito.dtox.ui.theme.DTOXTheme
 
 /**
  * Opens on the library; moving to the reader arrives with the app navigation (#48), which must
- * also call `ReaderViewModel.flushProgress()` from `onStop` again.
+ * also call `ReaderViewModel.flushProgress()` from `onStop` again and pass
+ * `ReaderViewModel::onNextChapter`/`onPreviousChapter` in the reader's `ReadingPosition`.
  */
 class MainActivity : ComponentActivity() {
     private val container: AppContainer get() = (application as DtoxApplication).container

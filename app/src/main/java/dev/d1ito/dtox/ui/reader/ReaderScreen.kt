@@ -6,7 +6,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
@@ -27,11 +26,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -49,14 +46,10 @@ import dev.d1ito.dtox.pagination.pageIndexOf
 import dev.d1ito.dtox.ui.theme.DTOXTheme
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Page turn duration from docs/04-design.md (~200–250 ms). */
-private const val PAGE_TURN_MILLIS = 225
-
-/** Share of the page width on each side where a tap turns the page. */
-private const val EDGE_TAP_FRACTION = 0.3f
+internal const val PAGE_TURN_MILLIS = 225
 
 private const val DEFAULT_ANIMATOR_SCALE = 1f
 
@@ -126,10 +119,14 @@ private class PaginatedChapter(
 /**
  * @property restoredAnchor position to open at, e.g. after rotation; `null` opens the first page.
  * @property onPageSettled receives the start anchor of every page the reader turns to.
+ * @property onNextChapter called when the reader turns forward from the last page.
+ * @property onPreviousChapter called when the reader turns back from the first page.
  */
 class ReadingPosition(
     val restoredAnchor: Anchor?,
     val onPageSettled: (Anchor) -> Unit,
+    val onNextChapter: () -> Unit = {},
+    val onPreviousChapter: () -> Unit = {},
 )
 
 /** Paginates [chapter] on [dispatcher]; `null` until the first result is ready. */
@@ -175,17 +172,29 @@ private fun ChapterPager(
                     pagerState,
                     snapAnimationSpec = pageTurnSpec(animationsEnabled),
                 ),
-            modifier = Modifier.fillMaxSize().edgeTapsTurnPages(pagerState, animationsEnabled),
-        ) { pageIndex ->
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-                PageContent(
-                    pages[pageIndex],
-                    paginated.chapter,
-                    readingStyles(),
-                    Modifier.width(paginated.columnWidth),
-                )
-            }
-        }
+            modifier =
+                Modifier.fillMaxSize().pageTurnGestures(
+                    pagerState,
+                    animationsEnabled,
+                    position,
+                ),
+        ) { pageIndex -> PageAt(paginated, pageIndex) }
+    }
+}
+
+/** One page of [paginated], centered in the reading column. */
+@Composable
+private fun PageAt(
+    paginated: PaginatedChapter,
+    pageIndex: Int,
+) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        PageContent(
+            paginated.pages[pageIndex],
+            paginated.chapter,
+            readingStyles(),
+            Modifier.width(paginated.columnWidth),
+        )
     }
 }
 
@@ -208,37 +217,6 @@ private fun ReportSettledPages(
 /** The desktop-like slide of docs/04-design.md, or an instant change without animations. */
 private fun pageTurnSpec(animationsEnabled: Boolean): AnimationSpec<Float> =
     if (animationsEnabled) tween(PAGE_TURN_MILLIS, easing = FastOutSlowInEasing) else snap()
-
-/** Tapping the left or right [EDGE_TAP_FRACTION] of the page goes to the previous or next page. */
-@Composable
-private fun Modifier.edgeTapsTurnPages(
-    pagerState: PagerState,
-    animationsEnabled: Boolean,
-): Modifier {
-    val scope = rememberCoroutineScope()
-    return pointerInput(pagerState, animationsEnabled) {
-        detectTapGestures { tap ->
-            val step =
-                when {
-                    tap.x < size.width * EDGE_TAP_FRACTION -> -1
-                    tap.x > size.width * (1 - EDGE_TAP_FRACTION) -> 1
-                    else -> 0 // The center will open the reading controls (another issue).
-                }
-            val target = (pagerState.currentPage + step).coerceIn(0, pagerState.pageCount - 1)
-            if (target == pagerState.currentPage) return@detectTapGestures
-            scope.launch {
-                if (animationsEnabled) {
-                    pagerState.animateScrollToPage(
-                        target,
-                        animationSpec = tween(PAGE_TURN_MILLIS, easing = FastOutSlowInEasing),
-                    )
-                } else {
-                    pagerState.scrollToPage(target)
-                }
-            }
-        }
-    }
-}
 
 /** `false` when the system "Remove animations" setting sets the animator scale to 0. */
 @Composable
