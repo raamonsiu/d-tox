@@ -1,11 +1,9 @@
 package dev.d1ito.dtox.ui.reader
 
-import android.content.res.Resources
-import dev.d1ito.dtox.R
-import dev.d1ito.dtox.data.importing.Sha256BookIdentifierCalculator
-import dev.d1ito.dtox.data.importing.TextBookParser
+import dev.d1ito.dtox.data.importing.BookIdentifierCalculator
+import dev.d1ito.dtox.data.importing.BookParser
 import dev.d1ito.dtox.domain.Book
-import kotlinx.coroutines.CoroutineDispatcher
+import java.io.InputStream
 
 private const val SAMPLE_FILE_NAME = "sample_quijote_chapter_one.md"
 
@@ -13,24 +11,21 @@ private const val SAMPLE_FILE_NAME = "sample_quijote_chapter_one.md"
  * Loads the bundled public domain sample chapter (res/raw) through the real import pipeline:
  * identifier hash, then the TXT/MD parser. Used by the reader prototype until importing exists.
  *
- * @param resources source of the raw resource.
- * @param ioDispatcher where reading and parsing run; never the main thread.
+ * @param openSample opens a new stream over the sample file each time it is called.
+ * @param identifierCalculator computes the book identifier.
+ * @param parser turns the sample into a [Book]; it chooses its own dispatcher.
  */
 class SampleBookLoader(
-    private val resources: Resources,
-    private val ioDispatcher: CoroutineDispatcher,
+    private val openSample: () -> InputStream,
+    private val identifierCalculator: BookIdentifierCalculator,
+    private val parser: BookParser,
 ) {
     /** @return the sample book, or the failure raised while hashing or parsing it. */
     suspend fun load(): Result<Book> {
         val identifier =
-            resources
-                .openRawResource(R.raw.sample_quijote_chapter_one)
-                .use { source -> Sha256BookIdentifierCalculator(ioDispatcher).calculate(source) }
+            openSample()
+                .use { source -> identifierCalculator.calculate(source) }
                 .getOrElse { error -> return Result.failure(error) }
-        return resources
-            .openRawResource(R.raw.sample_quijote_chapter_one)
-            .use { source ->
-                TextBookParser(ioDispatcher).parse(source, identifier, SAMPLE_FILE_NAME)
-            }
+        return openSample().use { source -> parser.parse(source, identifier, SAMPLE_FILE_NAME) }
     }
 }
