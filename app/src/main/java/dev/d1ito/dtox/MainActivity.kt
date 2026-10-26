@@ -11,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -19,9 +18,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import dev.d1ito.dtox.domain.Book
 import dev.d1ito.dtox.ui.reader.ReaderMessage
 import dev.d1ito.dtox.ui.reader.ReaderScreen
-import dev.d1ito.dtox.ui.reader.SampleBookLoader
 import dev.d1ito.dtox.ui.theme.DTOXTheme
-import kotlinx.coroutines.Dispatchers
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,7 +27,7 @@ class MainActivity : ComponentActivity() {
         hideSystemBars()
         setContent {
             DTOXTheme {
-                SampleReader()
+                SampleReader((application as DtoxApplication).container)
             }
         }
     }
@@ -46,16 +43,19 @@ class MainActivity : ComponentActivity() {
 
 /** Reader prototype on the bundled sample chapter, until importing and the library exist. */
 @Composable
-private fun SampleReader() {
-    val resources = LocalContext.current.resources
-    val sampleBook by produceState<Result<Book>?>(initialValue = null, resources) {
-        value = SampleBookLoader(resources, Dispatchers.IO).load()
+private fun SampleReader(container: AppContainer) {
+    val sampleBook by produceState<Result<Book>?>(initialValue = null, container) {
+        value = container.sampleBookLoader.load()
     }
     val loaded = sampleBook
     when {
         loaded == null -> EmptyScreen()
         loaded.isFailure -> ReaderMessage(stringResource(R.string.reader_chapter_unavailable))
-        else -> ReaderScreen(chapter = loaded.getOrThrow().chapters.first())
+        else ->
+            ReaderScreen(
+                chapter = loaded.getOrThrow().chapters.first(),
+                paginationDispatcher = container.dispatchers.computation,
+            )
     }
 }
 

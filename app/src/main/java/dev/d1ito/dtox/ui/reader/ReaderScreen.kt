@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -50,7 +51,7 @@ import dev.d1ito.dtox.pagination.Paginator
 import dev.d1ito.dtox.pagination.Viewport
 import dev.d1ito.dtox.pagination.pageIndexOf
 import dev.d1ito.dtox.ui.theme.DTOXTheme
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -73,10 +74,12 @@ private val readingColumnMaxWidth = 600.dp
  * or by tapping the left/right edges. The position survives rotation through its anchor.
  *
  * @param chapter chapter to read.
+ * @param paginationDispatcher where pages are measured; never the main thread.
  */
 @Composable
 fun ReaderScreen(
     chapter: Chapter,
+    paginationDispatcher: CoroutineDispatcher,
     modifier: Modifier = Modifier,
 ) {
     var savedBlock by rememberSaveable { mutableIntStateOf(0) }
@@ -86,11 +89,11 @@ fun ReaderScreen(
         contentAlignment = Alignment.TopCenter,
     ) {
         val columnWidth = min(maxWidth, readingColumnMaxWidth)
-        val viewport =
-            with(
-                LocalDensity.current,
-            ) { Viewport.create(columnWidth.roundToPx(), maxHeight.roundToPx()) }
-        val pages = viewport.getOrNull()?.let { size -> paginatedPages(chapter, size) }?.value
+        val pages =
+            viewportOf(columnWidth)
+                ?.let { size ->
+                    paginatedPages(chapter, size, paginationDispatcher)
+                }?.value
         when {
             pages == null -> Unit // Still paginating: keep the empty page background.
             pages.isFailure -> ReaderMessage(stringResource(R.string.reader_chapter_unavailable))
@@ -107,6 +110,13 @@ fun ReaderScreen(
         }
     }
 }
+
+/** The page area in pixels for a column of [columnWidth], or `null` if it is empty. */
+@Composable
+private fun BoxWithConstraintsScope.viewportOf(columnWidth: Dp): Viewport? =
+    with(LocalDensity.current) {
+        Viewport.create(columnWidth.roundToPx(), maxHeight.roundToPx()).getOrNull()
+    }
 
 /** Page background, room for system insets and the reading margins. */
 @Composable
@@ -132,11 +142,12 @@ private class ReadingPosition(
     val onPageSettled: (Anchor) -> Unit,
 )
 
-/** Paginates [chapter] on a background dispatcher; `null` until the first result is ready. */
+/** Paginates [chapter] on [dispatcher]; `null` until the first result is ready. */
 @Composable
 private fun paginatedPages(
     chapter: Chapter,
     viewport: Viewport,
+    dispatcher: CoroutineDispatcher,
 ): State<Result<List<Page>>?> {
     val styles = readingStyles()
     val textMeasurer = rememberTextMeasurer()
@@ -147,9 +158,10 @@ private fun paginatedPages(
         viewport,
         styles,
         density,
+        dispatcher,
     ) {
         val measurer = ComposeBlockMeasurer(textMeasurer, styles, density)
-        value = withContext(Dispatchers.Default) { Paginator.paginate(chapter, viewport, measurer) }
+        value = withContext(dispatcher) { Paginator.paginate(chapter, viewport, measurer) }
     }
 }
 
