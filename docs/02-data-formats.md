@@ -168,4 +168,4 @@ Markdown simple con _front matter_ opcional y el cuerpo usando solo `#`, `##`, p
 
 ## 7. Caché de índice de biblioteca (derivada)
 
-Tabla local (Room o equivalente): `bookId, title, author, uri, lastOpenedAt, finished`. Se puede borrar y reconstruir leyendo los archivos y los URIs importados.
+Archivo `files/library-index.json` (D-34), escrito de forma atómica: `{ "version": 1, "books": [{ "bookId", "title", "author", "file", "lastOpenedAt", "finished" }] }`. Es una caché: si falta, está corrupto o es de una versión más nueva, se reconstruye desde `files/library/<hex>.<ext>` y `files/books/<bookId>.json`.

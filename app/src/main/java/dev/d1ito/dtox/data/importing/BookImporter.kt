@@ -12,7 +12,6 @@ import java.nio.file.StandardCopyOption
 import java.util.UUID
 
 private const val STAGING_PREFIX = ".importing-"
-private const val IDENTIFIER_SEPARATOR = ':'
 
 /** MIME types accepted when the file name has no supported extension, and their extension. */
 private val extensionsByMimeType =
@@ -116,7 +115,7 @@ class BookImporter(
         val libraryFile =
             File(
                 libraryDirectory,
-                "${identifier.value.substringAfter(IDENTIFIER_SEPARATOR)}.$extension",
+                "${identifier.hex}.$extension",
             )
         val wasAlreadyInLibrary = libraryFile.exists()
         if (!wasAlreadyInLibrary) {
