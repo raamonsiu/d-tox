@@ -77,7 +77,7 @@ object BookDataFormat {
  * [known] values replace those in [preserved]; nested objects are merged the same way, so unknown
  * fields survive at every level. Keys keep their original order; new keys go last.
  */
-private fun merged(
+internal fun merged(
     preserved: JsonObject,
     known: JsonObject,
 ): JsonObject {
