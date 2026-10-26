@@ -11,7 +11,7 @@ decisiones en [docs/07-decisions.md](docs/07-decisions.md). Si algo de aquí cho
    (ej. `DTOX-42(feat)/add_epub_parser`; tipos: feat fix perf refactor style docs test build ci chore;
    minúsculas, `_`, ≤ 6 palabras, ≤ 72 caracteres). La primera línea del commit **es** el slug.
 3. **Testea** antes de commitear (`./gradlew testDebugUnitTest`; los cambios de comportamiento llevan test).
-4. Nunca `--no-verify`, nunca push a `main`, nunca commits con la versión editada a mano salvo para minor/major.
+4. Nunca `--no-verify`, nunca push a `main`, nunca edites `VERSION` ni la versión del README (la sube CI).
 5. Solo commitea/pushea cuando el dev lo pida.
 
 ## Tomar un issue (coordinación entre devs y agentes)
@@ -27,17 +27,19 @@ GitHub Issues es la fuente de verdad. Requiere `gh` autenticado; usa `scripts/is
 4. Lee el issue entero: responsabilidad, criterios y fuera de alcance. Lo que quede fuera, otro issue.
 5. Si abandonas: `scripts/issue.sh release <n>`. Nunca quites el reclamo de otra persona.
 
-## Hooks y versión (automáticos, `scripts/setup.sh` los activa)
+## Hooks y versión (`scripts/setup.sh` activa los hooks)
 
 - `pre-commit`: Prettier (md/json/yml), sintaxis shell, ktlint + detekt si hay Kotlin.
-- `commit-msg`: valida el slug. `post-commit`/`post-merge`: suben `VERSION` (fix+1) y el README.
-- `VERSION` (`major.minor.fix`) es la fuente única. Minor/major: edítalo a mano en el commit.
+- `commit-msg`: valida el slug.
+- `VERSION` (`major.minor.fix`) es la fuente única y solo la cambia CI: al mergear una PR, el workflow
+  `version-bump` sube fix, o minor/major si la PR lleva la etiqueta `version:minor`/`version:major`
+  (D-33). No hace falta mergear `main` en la rama por la versión.
 - Gradle (cuando exista): `versionName = VERSION`; `versionCode = major*10_000_000 + minor*10_000 + fix`.
 - Si un hook falla, arregla la causa. No lo saltes.
 
 ## README
 
-Cada commit solo toca la versión del README (lo hace el hook). Edita contenido del README
+La versión del README la actualiza CI. Edita contenido del README
 **únicamente** si cambia algo que describe (alcance, instalación, uso, requisitos). Optimizaciones,
 features mínimas, fuentes/colores/transiciones nuevas **no** lo modifican.
 

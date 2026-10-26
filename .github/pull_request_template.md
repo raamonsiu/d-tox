@@ -13,7 +13,8 @@
 - [ ] Tests nuevos o actualizados, y pasan
 - [ ] Sin librerías nuevas _(o: origen, licencia y autoría explicados abajo)_
 - [ ] Sin borrados _(o: qué se borra y por qué, aprobado)_
-- [ ] README actualizado solo si cambia algo que describe (la versión ya la pone el hook)
+- [ ] README actualizado solo si cambia algo que describe (la versión la pone CI al mergear)
+- [ ] Sin tocar `VERSION`; etiqueta `version:minor`/`version:major` si no es un fix
 
 ## Librería nueva / borrados (si aplica)
 

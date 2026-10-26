@@ -1,0 +1,30 @@
+# Bumps VERSION and the README version once per merged pull request (D-33). The bump type comes
+# from the PR label: version:major, version:minor or version:fix (no label = fix).
+# pull_request_target runs with this repository's token and the workflow from main; it checks out
+# main only and never runs code from the pull request, so it is safe for forks too.
+name: Version bump
+
+on:
+  pull_request_target:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    name: Bump version on main
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Commit the new version to main
+        env:
+          PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        # Pushes made with GITHUB_TOKEN do not trigger workflows, so this cannot loop.
+        run: scripts/version.sh publish "$PULL_REQUEST_NUMBER" "$LABELS"

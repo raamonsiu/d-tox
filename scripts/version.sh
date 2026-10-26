@@ -1,21 +1,33 @@
 #!/usr/bin/env bash
-# Version management. VERSION is the single source of truth (major.minor.fix).
+# Version management. VERSION is the single source of truth (major.minor.fix); only CI changes it,
+# once per merged pull request, from the PR's "version:*" label (D-33).
 #
-#   bump              post-commit: fix+1 for a normal commit.
-#   merged            merge commits: rebuild the commit with highest parent version + 1.
-#   sync              write VERSION into the README marker.
-#   check <baseRef>   CI: VERSION must be greater than at <baseRef> and match the README.
-#
-# Minor/major bumps: edit VERSION by hand in the commit; the hook then keeps it as is.
+#   bump-type <labels>        prints major, minor or fix from comma-separated PR labels
+#                             (no version label = fix; more than one = error).
+#   next <type>               prints VERSION incremented by major, minor or fix.
+#   check <baseRef>           PR check: this branch does not change VERSION and the README version
+#                             still matches it.
+#   publish <pr> <labels>     CI after a merge: bump VERSION and README on origin/main, commit and
+#                             push, retrying on top of newer merges.
+#   sync                      write VERSION into the README marker.
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 
 README_MARKER_REGEX='(<!-- version -->)[^<]*(<!-- /version -->)'
+VERSION_LABEL_PREFIX="version:"
+PUBLISH_ATTEMPTS=5
+BOT_NAME="github-actions[bot]"
+BOT_EMAIL="41898282+github-actions[bot]@users.noreply.github.com"
 
-# Prints the version currently written in the README marker (empty if none).
-readme_version() {
-  grep -oE '<!-- version -->[^<]*<!-- /version -->' README.md 2>/dev/null |
+# Prints the version written in the README marker of the given text (empty if none).
+readme_version_of() {
+  grep -oE '<!-- version -->[^<]*<!-- /version -->' |
     sed -E 's/<!-- version -->([^<]*)<!-- \/version -->/\1/' | head -n 1
+}
+
+# Prints the README version marker at a git ref (empty if absent).
+readme_version_at_ref() {
+  git show "$1:README.md" 2>/dev/null | readme_version_of || true
 }
 
 # Writes the given version to VERSION and into the README marker.
@@ -28,99 +40,74 @@ write_version_files() {
   fi
 }
 
-# True while rebasing, cherry-picking or reverting; the hook must not interfere there.
-history_rewrite_in_progress() {
-  local git_dir
-  git_dir="$(git rev-parse --git-dir)"
-  [ -d "$git_dir/rebase-merge" ] || [ -d "$git_dir/rebase-apply" ] ||
-    [ -f "$git_dir/CHERRY_PICK_HEAD" ] || [ -f "$git_dir/REVERT_HEAD" ]
-}
-
-# True when HEAD was not created here but reached by a fast-forward (`git pull`/`git merge` to a
-# merge commit that already exists, e.g. a PR merged on GitHub) or is already published on a remote.
-# Topology alone cannot tell these apart from a local merge, and rewriting them diverges from remote.
-head_is_existing_commit() {
-  git reflog -1 --format=%gs HEAD 2>/dev/null | grep -q 'Fast-forward' ||
-    [ -n "$(git branch -r --contains HEAD 2>/dev/null)" ]
-}
-
-# Folds VERSION and README into the commit that was just created.
-amend_head_with_version_files() {
-  if ! git diff --quiet -- VERSION README.md; then
-    git add VERSION README.md
-    DTOX_SKIP_VERSION_HOOK=1 git commit --amend --no-edit --no-verify --quiet
-    echo "[version] $(<VERSION)"
-  fi
-}
-
-# Aborts (without failing the commit) if the user has unstaged edits in the version files.
-refuse_when_version_files_dirty() {
-  if ! git diff --quiet -- VERSION README.md; then
-    echo "[version] VERSION/README.md have unstaged changes; run 'scripts/version.sh sync' and amend manually." >&2
-    exit 0
-  fi
-}
-
-command_bump() {
-  history_rewrite_in_progress && exit 0
-  local parent_count
-  parent_count="$(($(git rev-list --parents -n 1 HEAD | wc -w) - 1))"
-  [ "$parent_count" -ge 2 ] && command_merged
-  refuse_when_version_files_dirty
-  if [ "$parent_count" -eq 0 ] || git diff-tree --no-commit-id --name-only -r HEAD | grep -qx 'VERSION'; then
-    write_version_files "$(<VERSION)"
-  else
-    write_version_files "$(increment_fix_version "$(version_at_ref HEAD^)")"
-  fi
-  amend_head_with_version_files
-}
-
-# Merge commits (post-merge for clean merges, post-commit for conflicted ones): amending is refused
-# while MERGE_HEAD exists, so the commit is rebuilt with plumbing: same parents and message, new tree.
-command_merged() {
-  local parents parent_arguments=() highest="0.0.0" parent version_after tree new_commit
-  mapfile -t parents < <(git rev-list --parents -n 1 HEAD | tr ' ' '\n' | tail -n +2)
-  [ "${#parents[@]}" -ge 2 ] || exit 0
-  head_is_existing_commit && exit 0
-  for parent in "${parents[@]}"; do
-    highest="$(highest_version "$highest" "$(version_at_ref "$parent")")"
-    parent_arguments+=(-p "$parent")
+command_bump_type() {
+  local labels="$1" label found=()
+  IFS=',' read -r -a label_list <<<"$labels"
+  for label in "${label_list[@]}"; do
+    case "$label" in
+      "${VERSION_LABEL_PREFIX}major" | "${VERSION_LABEL_PREFIX}minor" | "${VERSION_LABEL_PREFIX}fix")
+        found+=("${label#"$VERSION_LABEL_PREFIX"}")
+        ;;
+    esac
   done
-  version_after="$(increment_fix_version "$highest")"
-  [ "$(<VERSION)" = "$version_after" ] && exit 0
-  write_version_files "$version_after"
-  git add VERSION README.md
-  tree="$(git write-tree)"
-  new_commit="$(git log -1 --format=%B | GIT_AUTHOR_NAME="$(git log -1 --format=%an)" \
-    GIT_AUTHOR_EMAIL="$(git log -1 --format=%ae)" GIT_AUTHOR_DATE="$(git log -1 --format=%aI)" \
-    git commit-tree "$tree" "${parent_arguments[@]}")"
-  git update-ref -m "version: merge -> ${version_after}" HEAD "$new_commit"
-  echo "[version] merge -> ${version_after}"
+  if [ "${#found[@]}" -gt 1 ]; then
+    echo "Use at most one version label, found: ${found[*]}" >&2
+    return 1
+  fi
+  echo "${found[0]:-fix}"
+}
+
+command_next() {
+  increment_version "$(<VERSION)" "$1"
 }
 
 command_check() {
-  local base_ref="$1" current base_version readme_current
-  current="$(<VERSION)"
-  base_version="$(version_at_ref "$base_ref")"
-  readme_current="$(readme_version)"
-  if [ "$current" != "$(highest_version "$current" "${base_version:-0.0.0}")" ] ||
-    [ "$current" = "${base_version:-0.0.0}" ]; then
-    echo "VERSION ($current) must be greater than ${base_ref} (${base_version})." >&2
+  local base_ref="$1" merge_base
+  merge_base="$(git merge-base "$base_ref" HEAD)"
+  if ! git diff --quiet "$merge_base" HEAD -- VERSION; then
+    echo "This branch changes VERSION. CI bumps it after merging;" >&2
+    echo "ask for minor/major with a 'version:minor' or 'version:major' label instead." >&2
     return 1
   fi
-  if [ "$readme_current" != "$current" ]; then
-    echo "README version ($readme_current) does not match VERSION ($current)." >&2
+  if [ "$(readme_version_at_ref HEAD)" != "$(<VERSION)" ]; then
+    echo "README version ($(readme_version_at_ref HEAD)) does not match VERSION ($(<VERSION));" >&2
+    echo "do not edit the README version marker, CI updates it after merging." >&2
     return 1
   fi
-  echo "Version OK: ${base_version} -> ${current}"
+  echo "Version OK: unchanged ($(<VERSION)); CI bumps it after the merge."
+}
+
+command_publish() {
+  local pull_request="$1" labels="$2" bump_type new_version attempt
+  bump_type="$(command_bump_type "$labels")"
+  git config user.name "$BOT_NAME"
+  git config user.email "$BOT_EMAIL"
+  for attempt in $(seq 1 "$PUBLISH_ATTEMPTS"); do
+    git fetch --quiet origin main
+    git reset --quiet --hard origin/main
+    new_version="$(command_next "$bump_type")"
+    write_version_files "$new_version"
+    git add VERSION README.md
+    git commit --quiet -m "DTOX(chore)/bump_version_after_pr_${pull_request}" \
+      -m "Version ${new_version} (${bump_type}) after #${pull_request}."
+    if git push --quiet origin HEAD:main; then
+      echo "Published ${new_version} (${bump_type}) after #${pull_request}."
+      return 0
+    fi
+    echo "main moved on (attempt ${attempt}); retrying on top of it." >&2
+    sleep "$attempt"
+  done
+  echo "Could not push the version bump after ${PUBLISH_ATTEMPTS} attempts." >&2
+  return 1
 }
 
 cd "$(repository_root)"
 case "${1:-}" in
-  bump) command_bump ;;
-  merged) command_merged ;;
-  sync) write_version_files "$(<VERSION)" ;;
+  bump-type) command_bump_type "${2-}" ;;
+  next) command_next "${2:?type required: major, minor or fix}" ;;
   check) command_check "${2:?base ref required}" ;;
+  publish) command_publish "${2:?pull request number required}" "${3-}" ;;
+  sync) write_version_files "$(<VERSION)" ;;
   *)
     sed -n '2,12p' "$0"
     exit 2

@@ -24,10 +24,10 @@ Tipos: `feat` `fix` `perf` `refactor` `style` `docs` `test` `build` `ci` `chore`
 
 - **Librería nueva**: explica origen, licencia (compatible con GPL-3.0), autoría y por qué hace falta. Requiere etiqueta `deps-approved`.
 - **Borrar algo**: requiere confirmación del dev y etiqueta `deletion-approved`.
-- **Versión**: la sube el hook. Si `main` avanzó, haz `git merge origin/main` en local (no el botón de GitHub).
-  Para subir minor/major edita `VERSION` a mano en tu commit. Los fast-forward (p. ej. `git pull` tras
-  mergear una PR) no tocan la versión; si cambias los hooks, pásales `scripts/test-version-hooks.sh`.
-- **`main` local divergido** (un hook antiguo reescribió el merge al hacer `git pull`): estando en `main`,
+- **Versión**: no edites `VERSION` ni la versión del README; el check de la PR falla si lo haces. Al mergear,
+  CI sube fix y lo publica en `main`. Para minor/major pon la etiqueta `version:minor` o `version:major`
+  en la PR (como mucho una). Si cambias `scripts/version.sh` o `scripts/lib.sh`, pasa `scripts/test-version.sh`.
+- **`main` local divergido** (los hooks de versión antiguos reescribían merges al hacer `git pull`): estando en `main`,
   `git fetch origin && git reset --hard origin/main` (descarta los commits locales que no estén en remoto).
 
 Código y comentarios en inglés, textos de usuario en español. Más detalle en [CLAUDE.md](CLAUDE.md).

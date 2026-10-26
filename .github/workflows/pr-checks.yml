@@ -30,10 +30,14 @@ jobs:
           git log --format=%s "origin/${BASE_BRANCH}..HEAD" | while IFS= read -r subject; do
             scripts/validate-slug.sh "$subject"
           done
-      - name: VERSION is greater than base and matches README
+      - name: VERSION untouched and at most one version label
         env:
           BASE_BRANCH: ${{ github.base_ref }}
-        run: scripts/version.sh check "origin/${BASE_BRANCH}"
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          scripts/version.sh check "origin/${BASE_BRANCH}"
+          bump_type="$(scripts/version.sh bump-type "$LABELS")"
+          echo "Version bump after merge: ${bump_type}"
 
   approvals:
     name: Dependency and deletion approval

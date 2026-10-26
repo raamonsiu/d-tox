@@ -9,8 +9,8 @@ Solo cuando el dev lo pida (CLAUDE.md, «Flujo»).
 
 1. Comprueba la rama: su nombre es un slug válido (`scripts/validate-slug.sh "$(git branch --show-current)"`)
    y no es `main`. El trabajo ya está commiteado y comprobado (skill `check`).
-2. Si `main` avanzó, `git merge origin/main` en local (CONTRIBUTING.md, «Versión»).
-3. `git push`.
+2. `git push`. No hace falta mergear `main` por la versión: la sube CI al mergear (D-33).
+3. Si el cambio no es un fix, añade la etiqueta `version:minor` o `version:major` (`gh pr edit --add-label`).
 4. Rellena [.github/pull_request_template.md](../../../.github/pull_request_template.md): qué y por qué
    con `Closes #<número del slug>`, cómo se probó (lo que de verdad se ejecutó) y el checklist marcado
    con honestidad. Si hay librería nueva o borrados, rellena esa sección.
