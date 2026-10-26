@@ -64,6 +64,7 @@ class AppContainerTest {
         assertSame(container.sampleBookLoader, container.sampleBookLoader)
         assertSame(container.libraryIndex, container.libraryIndex)
         assertSame(container.bookImporter, container.bookImporter)
+        assertSame(container.parsedBookCache, container.parsedBookCache)
     }
 
     @Test
