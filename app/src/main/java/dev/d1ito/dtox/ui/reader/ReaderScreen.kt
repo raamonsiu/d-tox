@@ -1,0 +1,258 @@
+package dev.d1ito.dtox.ui.reader
+
+import android.provider.Settings
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
+import dev.d1ito.dtox.R
+import dev.d1ito.dtox.domain.Anchor
+import dev.d1ito.dtox.domain.Chapter
+import dev.d1ito.dtox.pagination.Page
+import dev.d1ito.dtox.pagination.Paginator
+import dev.d1ito.dtox.pagination.Viewport
+import dev.d1ito.dtox.pagination.pageIndexOf
+import dev.d1ito.dtox.ui.theme.DTOXTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+/** Page turn duration from docs/04-design.md (~200–250 ms). */
+private const val PAGE_TURN_MILLIS = 225
+
+/** Share of the page width on each side where a tap turns the page. */
+private const val EDGE_TAP_FRACTION = 0.3f
+
+private const val DEFAULT_ANIMATOR_SCALE = 1f
+
+private val pageHorizontalMargin = 24.dp
+private val pageVerticalMargin = 32.dp
+
+/** Keeps the reading column narrow on wide screens (docs/04-design.md: ≈ 55–70 characters). */
+private val readingColumnMaxWidth = 600.dp
+
+/**
+ * Full screen reader for one chapter: only text, paginated off the main thread, turned by swipe
+ * or by tapping the left/right edges. The position survives rotation through its anchor.
+ *
+ * @param chapter chapter to read.
+ */
+@Composable
+fun ReaderScreen(
+    chapter: Chapter,
+    modifier: Modifier = Modifier,
+) {
+    var savedBlock by rememberSaveable { mutableIntStateOf(0) }
+    var savedOffset by rememberSaveable { mutableIntStateOf(0) }
+    BoxWithConstraints(
+        modifier = modifier.readerPageArea(),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        val columnWidth = min(maxWidth, readingColumnMaxWidth)
+        val viewport =
+            with(
+                LocalDensity.current,
+            ) { Viewport.create(columnWidth.roundToPx(), maxHeight.roundToPx()) }
+        val pages = viewport.getOrNull()?.let { size -> paginatedPages(chapter, size) }?.value
+        when {
+            pages == null -> Unit // Still paginating: keep the empty page background.
+            pages.isFailure -> ReaderMessage(stringResource(R.string.reader_chapter_unavailable))
+            else -> {
+                val position =
+                    ReadingPosition(
+                        Anchor.create(chapter.index, savedBlock, savedOffset).getOrNull(),
+                    ) { anchor ->
+                        savedBlock = anchor.block
+                        savedOffset = anchor.offset
+                    }
+                ChapterPager(PaginatedChapter(chapter, pages.getOrThrow(), columnWidth), position)
+            }
+        }
+    }
+}
+
+/** Page background, room for system insets and the reading margins. */
+@Composable
+private fun Modifier.readerPageArea(): Modifier =
+    fillMaxSize()
+        .background(DTOXTheme.palette.background)
+        .windowInsetsPadding(WindowInsets.safeDrawing)
+        .padding(horizontal = pageHorizontalMargin, vertical = pageVerticalMargin)
+
+/** A chapter with its pages for one column width. */
+private class PaginatedChapter(
+    val chapter: Chapter,
+    val pages: List<Page>,
+    val columnWidth: Dp,
+)
+
+/**
+ * @property restoredAnchor position to open at, e.g. after rotation; `null` opens the first page.
+ * @property onPageSettled receives the start anchor of every page the reader stops on.
+ */
+private class ReadingPosition(
+    val restoredAnchor: Anchor?,
+    val onPageSettled: (Anchor) -> Unit,
+)
+
+/** Paginates [chapter] on a background dispatcher; `null` until the first result is ready. */
+@Composable
+private fun paginatedPages(
+    chapter: Chapter,
+    viewport: Viewport,
+): State<Result<List<Page>>?> {
+    val styles = readingStyles()
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    return produceState<Result<List<Page>>?>(
+        initialValue = null,
+        chapter,
+        viewport,
+        styles,
+        density,
+    ) {
+        val measurer = ComposeBlockMeasurer(textMeasurer, styles, density)
+        value = withContext(Dispatchers.Default) { Paginator.paginate(chapter, viewport, measurer) }
+    }
+}
+
+@Composable
+private fun ChapterPager(
+    paginated: PaginatedChapter,
+    position: ReadingPosition,
+) {
+    val pages = paginated.pages
+    // New pages (rotation, font change) need a new pager opened at the anchor's page.
+    key(pages) {
+        val initialPage = position.restoredAnchor?.let { anchor -> pageIndexOf(pages, anchor) } ?: 0
+        val pagerState = rememberPagerState(initialPage = initialPage) { pages.size }
+        val animationsEnabled = rememberAnimationsEnabled()
+        ReportSettledPages(pagerState, pages, position.onPageSettled)
+        HorizontalPager(
+            state = pagerState,
+            flingBehavior =
+                PagerDefaults.flingBehavior(
+                    pagerState,
+                    snapAnimationSpec = pageTurnSpec(animationsEnabled),
+                ),
+            modifier = Modifier.fillMaxSize().edgeTapsTurnPages(pagerState, animationsEnabled),
+        ) { pageIndex ->
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                PageContent(
+                    pages[pageIndex],
+                    paginated.chapter,
+                    readingStyles(),
+                    Modifier.width(paginated.columnWidth),
+                )
+            }
+        }
+    }
+}
+
+/** Calls [onPageSettled] with the start anchor of each page the pager settles on. */
+@Composable
+private fun ReportSettledPages(
+    pagerState: PagerState,
+    pages: List<Page>,
+    onPageSettled: (Anchor) -> Unit,
+) {
+    LaunchedEffect(pagerState, pages) {
+        snapshotFlow { pagerState.settledPage }.collect { page ->
+            onPageSettled(pages[page].startAnchor)
+        }
+    }
+}
+
+/** The desktop-like slide of docs/04-design.md, or an instant change without animations. */
+private fun pageTurnSpec(animationsEnabled: Boolean): AnimationSpec<Float> =
+    if (animationsEnabled) tween(PAGE_TURN_MILLIS, easing = FastOutSlowInEasing) else snap()
+
+/** Tapping the left or right [EDGE_TAP_FRACTION] of the page goes to the previous or next page. */
+@Composable
+private fun Modifier.edgeTapsTurnPages(
+    pagerState: PagerState,
+    animationsEnabled: Boolean,
+): Modifier {
+    val scope = rememberCoroutineScope()
+    return pointerInput(pagerState, animationsEnabled) {
+        detectTapGestures { tap ->
+            val step =
+                when {
+                    tap.x < size.width * EDGE_TAP_FRACTION -> -1
+                    tap.x > size.width * (1 - EDGE_TAP_FRACTION) -> 1
+                    else -> 0 // The center will open the reading controls (another issue).
+                }
+            val target = (pagerState.currentPage + step).coerceIn(0, pagerState.pageCount - 1)
+            if (target == pagerState.currentPage) return@detectTapGestures
+            scope.launch {
+                if (animationsEnabled) {
+                    pagerState.animateScrollToPage(
+                        target,
+                        animationSpec = tween(PAGE_TURN_MILLIS, easing = FastOutSlowInEasing),
+                    )
+                } else {
+                    pagerState.scrollToPage(target)
+                }
+            }
+        }
+    }
+}
+
+/** `false` when the system "Remove animations" setting sets the animator scale to 0. */
+@Composable
+private fun rememberAnimationsEnabled(): Boolean {
+    val contentResolver = LocalContext.current.contentResolver
+    return remember(contentResolver) {
+        Settings.Global.getFloat(
+            contentResolver,
+            Settings.Global.ANIMATOR_DURATION_SCALE,
+            DEFAULT_ANIMATOR_SCALE,
+        ) >
+            0f
+    }
+}
+
+/** A short centered message in the reading style, e.g. when a chapter cannot be shown. */
+@Composable
+fun ReaderMessage(text: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = text, color = DTOXTheme.palette.textMuted)
+    }
+}

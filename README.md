@@ -4,7 +4,7 @@ App Android de lectura para la desintoxicación digital: un lector calmado y aus
 
 **Estado:** planificación. No hay código todavía.
 
-**Versión:** <!-- version -->0.1.21<!-- /version -->
+**Versión:** <!-- version -->0.1.22<!-- /version -->
 
 Toda la documentación de producto y diseño está en [`docs/`](docs/README.md).
 

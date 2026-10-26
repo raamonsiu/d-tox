@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">D-TOX</string>
+    <string name="reader_chapter_unavailable">No se pudo mostrar este capítulo.</string>
 </resources>
