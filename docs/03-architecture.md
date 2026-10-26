@@ -17,7 +17,7 @@
 | Red                      | `HttpURLConnection` / OkHttp; solo descarga del feed                                   |                                                                                              |
 | Trabajo en segundo plano | WorkManager                                                                            | Persistente tras reinicio                                                                    |
 | Avisos                   | `NotificationManager` + alarmas inexactas / WorkManager                                | Sin permiso de alarmas exactas                                                               |
-| DI                       | Manual (contenedor en `Application`) o Hilt; decidir al inicializar                    | Proyecto pequeño                                                                             |
+| DI                       | Manual: `AppContainer` en `Application` + `viewModelFactory` (D-32)                    | Proyecto pequeño; sin plugins ni generación de código                                        |
 | Tests                    | JUnit5/JUnit4, Turbine, Compose UI tests                                               |                                                                                              |
 
 Restricción transversal: **sin dependencias propietarias** (Firebase, GMS, analítica) para ser compatible con F-Droid.
