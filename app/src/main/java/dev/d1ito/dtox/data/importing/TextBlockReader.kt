@@ -2,7 +2,7 @@ package dev.d1ito.dtox.data.importing
 
 import dev.d1ito.dtox.domain.Block
 
-/** Turns the decoded text of a TXT or Markdown file into document model blocks. */
+/** Turns the decoded text of a TXT, Markdown or XHTML document into document model blocks. */
 fun interface TextBlockReader {
     /**
      * @param text the whole file content, any line ending style.
