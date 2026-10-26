@@ -29,8 +29,9 @@ rules:
     message: Cleartext HTTP is not allowed. Use HTTPS.
     paths:
       include: ["*.kt", "*.xml"]
-    # XML namespace URIs (xmlns:android, SVG) are identifiers, never fetched: not cleartext traffic.
-    pattern-regex: '"http://(?!localhost|127\.0\.0\.1|10\.0\.2\.2|schemas\.android\.com/|www\.w3\.org/)'
+    # XML namespace URIs (xmlns:android, SVG, EPUB OPF, Dublin Core) are identifiers, never fetched:
+    # not cleartext traffic.
+    pattern-regex: '"http://(?!localhost|127\.0\.0\.1|10\.0\.2\.2|schemas\.android\.com/|www\.w3\.org/|www\.idpf\.org/|purl\.org/dc/)'
 
   - id: dtox-no-tracking-sdk
     languages: [generic]
