@@ -29,19 +29,17 @@ validate_slug() {
   fi
 }
 
-# Prints the higher of two major.minor.fix versions.
-highest_version() {
-  printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n 1
-}
-
-# Prints version with fix + 1.
-increment_fix_version() {
+# Prints the version incremented by type: major resets minor and fix, minor resets fix.
+increment_version() {
   local major minor fix
   IFS='.' read -r major minor fix <<<"$1"
-  echo "${major}.${minor}.$((fix + 1))"
-}
-
-# Prints the VERSION stored at a git ref, or 0.0.0 if absent.
-version_at_ref() {
-  git show "$1:VERSION" 2>/dev/null | tr -d '[:space:]' || true
+  case "$2" in
+    major) echo "$((major + 1)).0.0" ;;
+    minor) echo "${major}.$((minor + 1)).0" ;;
+    fix) echo "${major}.${minor}.$((fix + 1))" ;;
+    *)
+      echo "Unknown version bump type: $2 (expected major, minor or fix)" >&2
+      return 1
+      ;;
+  esac
 }

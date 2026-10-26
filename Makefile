@@ -21,7 +21,7 @@ endif
 help: ## List the available targets
 	@grep -E '^[a-z]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  make %-8s %s\n", $$1, $$2}'
 
-setup: ## Enable the git hooks and merge drivers (once per clone)
+setup: ## Enable the git hooks (once per clone)
 	scripts/setup.sh
 
 build: ## Compile the debug APK
