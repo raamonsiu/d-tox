@@ -10,10 +10,12 @@ import dev.d1ito.dtox.domain.Chapter
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Test
 import java.io.IOException
+import java.time.Clock
 
 private const val IDENTIFIER = "sha256:0123456789abcdef0123456789abcdef"
 
@@ -103,11 +105,53 @@ class ReaderViewModelTest {
         assertEquals(null, savedState.get<Int>("reader.chapter"))
     }
 
+    @Test
+    fun storedPosition_isRestoredWhenThereIsNoSavedState() {
+        val store = InMemoryBookDataStore()
+        readerViewModel(SavedStateHandle(), store) { Result.success(book) }.apply {
+            onPageSettled(anchor(1, 0, 3))
+            flushProgress()
+        }
+
+        // New process: no saved state, only the data file.
+        val reopened = readerViewModel(SavedStateHandle(), store) { Result.success(book) }
+
+        val restored = (reopened.state.value as ReaderUiState.Reading).position
+        assertEquals(Triple(1, 0, 3), Triple(restored.chapter, restored.block, restored.offset))
+        assertEquals("to 1", restored.quote)
+    }
+
+    @Test
+    fun savedState_winsOverTheStoredPosition() {
+        val store = InMemoryBookDataStore()
+        val savedState = SavedStateHandle()
+        readerViewModel(savedState, store) { Result.success(book) }.apply {
+            onPageSettled(anchor(1, 0, 3))
+            flushProgress()
+            onPageSettled(anchor(0, 0, 2))
+        }
+
+        val restored = readerViewModel(savedState, store) { Result.success(book) }
+
+        assertEquals(ReaderUiState.Reading(book, anchor(0, 0, 2)), restored.state.value)
+    }
+
     /** Unconfined: loading and state updates run right away on the test thread. */
     private fun readerViewModel(
         savedState: SavedStateHandle,
+        store: InMemoryBookDataStore = InMemoryBookDataStore(),
         loadBook: suspend () -> Result<Book>,
-    ) = ReaderViewModel(savedState, loadBook, CoroutineScope(Dispatchers.Unconfined))
+    ): ReaderViewModel {
+        val scope = CoroutineScope(Dispatchers.Unconfined)
+        val keeper =
+            ReadingProgressKeeper(
+                store = store,
+                clock = Clock.systemUTC(),
+                waitBeforeSaving = { awaitCancellation() },
+                scope = scope,
+            )
+        return ReaderViewModel(savedState, loadBook, "libro.md", keeper, scope)
+    }
 
     private fun anchor(
         chapter: Int,

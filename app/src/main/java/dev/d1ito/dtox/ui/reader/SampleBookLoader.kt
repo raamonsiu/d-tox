@@ -5,8 +5,6 @@ import dev.d1ito.dtox.data.importing.BookParser
 import dev.d1ito.dtox.domain.Book
 import java.io.InputStream
 
-private const val SAMPLE_FILE_NAME = "sample_quijote_chapter_one.md"
-
 /**
  * Loads the bundled public domain sample chapter (res/raw) through the real import pipeline:
  * identifier hash, then the TXT/MD parser. Used by the reader prototype until importing exists.
@@ -20,6 +18,11 @@ class SampleBookLoader(
     private val identifierCalculator: BookIdentifierCalculator,
     private val parser: BookParser,
 ) {
+    companion object {
+        /** File name of the bundled sample, used to pick its parser and as its source name. */
+        const val SAMPLE_FILE_NAME = "sample_quijote_chapter_one.md"
+    }
+
     /** @return the sample book, or the failure raised while hashing or parsing it. */
     suspend fun load(): Result<Book> {
         val identifier =
