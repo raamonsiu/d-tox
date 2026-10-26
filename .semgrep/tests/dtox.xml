@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Test cases for dtox-no-cleartext-http. Run:
+     semgrep --test --config .semgrep/dtox.yml .semgrep/tests/
+     Lives under tests/ so the regular CI scan (which skips tests/ by default) ignores it. -->
+<!-- ok: dtox-no-cleartext-http -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    <!-- ok: dtox-no-cleartext-http -->
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- ok: dtox-no-cleartext-http -->
+    <svg xmlns="http://www.w3.org/2000/svg" />
+    <!-- ok: dtox-no-cleartext-http -->
+    <server url="http://localhost:8080" />
+    <!-- ok: dtox-no-cleartext-http -->
+    <feed url="https://example.com/index.json" />
+    <!-- ruleid: dtox-no-cleartext-http -->
+    <feed url="http://example.com/index.json" />
+    <!-- ruleid: dtox-no-cleartext-http -->
+    <feed url="http://schemas.android.com.example.net/index.json" />
+</manifest>
