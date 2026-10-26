@@ -2,6 +2,9 @@
     <string name="app_name">D-TOX</string>
     <string name="reader_chapter_unavailable">No se pudo mostrar este capítulo.</string>
     <string name="reader_book_unavailable">No se pudo abrir este libro.</string>
+    <string name="reader_controls_back">Volver</string>
+    <string name="reader_controls_chapters">Capítulos</string>
+    <string name="reader_controls_text">Texto</string>
     <string name="library_title">Biblioteca</string>
     <string name="library_add">Añadir libro</string>
     <string name="library_importing">Importando…</string>
