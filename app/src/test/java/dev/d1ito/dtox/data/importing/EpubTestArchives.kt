@@ -1,5 +1,8 @@
 package dev.d1ito.dtox.data.importing
 
+import dev.d1ito.dtox.domain.Book
+import dev.d1ito.dtox.domain.BookIdentifier
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.rules.TemporaryFolder
 import java.io.File
@@ -79,3 +82,37 @@ internal inline fun <reified ExpectedError : EpubPackageError> assertEpubFailure
         result.exceptionOrNull() is ExpectedError,
     )
 }
+
+/** An XHTML content document with the given body markup. */
+internal fun chapterDocument(body: String): String =
+    "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>t</title></head>" +
+        "<body>$body</body></html>"
+
+/** An EPUB whose OPF lists [documents] (`href to content`) in spine order under `OEBPS/`. */
+internal fun TemporaryFolder.epubWithDocuments(
+    metadata: String = "<dc:title>Título</dc:title>",
+    documents: List<Pair<String, String>>,
+): File {
+    val manifest =
+        documents.mapIndexed { index, (href, _) -> xhtmlItem("d$index", href) }.joinToString("")
+    val spine = documents.indices.joinToString("") { index -> """<itemref idref="d$index"/>""" }
+    return epubFile(
+        containerFor("OEBPS/content.opf"),
+        "OEBPS/content.opf" to
+            packageDocument(metadata = metadata, manifest = manifest, spine = spine),
+        *documents.map { (href, content) -> "OEBPS/$href" to content }.toTypedArray(),
+    )
+}
+
+/** A fixed, valid identifier for parser tests. */
+internal fun testBookIdentifier(): BookIdentifier =
+    BookIdentifier.parse("sha256:0123456789abcdef0123456789abcdef").getOrThrow()
+
+/** Parses [epub] as an imported file named [fileName], blocking the test thread. */
+internal fun EpubBookParser.parseFile(
+    epub: File,
+    fileName: String = "libro.epub",
+): Result<Book> =
+    epub.inputStream().use { source ->
+        runBlocking { parse(source, testBookIdentifier(), fileName) }
+    }
