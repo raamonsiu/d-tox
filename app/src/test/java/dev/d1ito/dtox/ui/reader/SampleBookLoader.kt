@@ -6,8 +6,8 @@ import dev.d1ito.dtox.domain.Book
 import java.io.InputStream
 
 /**
- * Loads the bundled public domain sample chapter (res/raw) through the real import pipeline:
- * identifier hash, then the TXT/MD parser. Used by the reader prototype until importing exists.
+ * Loads the public domain sample chapter (test resources) through the real import pipeline:
+ * identifier hash, then the TXT/MD parser. Test fixture since the app opens library books.
  *
  * @param openSample opens a new stream over the sample file each time it is called.
  * @param identifierCalculator computes the book identifier.

@@ -6,6 +6,7 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -31,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.d1ito.dtox.R
 import dev.d1ito.dtox.data.storage.LibraryEntry
+import dev.d1ito.dtox.domain.BookIdentifier
 import dev.d1ito.dtox.ui.theme.DTOXTheme
 
 /** Types offered in the picker. Markdown often arrives as octet-stream; the importer checks. */
@@ -46,16 +48,27 @@ private val pickableMimeTypes =
 private val screenMargin = 24.dp
 private val entrySpacing = 16.dp
 
-/** The library (docs/04-design.md §Biblioteca): a plain text list and "Añadir libro". */
+/**
+ * The library (docs/04-design.md §Biblioteca): a plain text list and "Añadir libro".
+ *
+ * @param onOpenBook opens the touched book in the reader.
+ */
 @Composable
-fun LibraryScreen(viewModel: LibraryViewModel) {
+fun LibraryScreen(
+    viewModel: LibraryViewModel,
+    onOpenBook: (BookIdentifier) -> Unit,
+) {
     val state by viewModel.state.collectAsState()
     val contentResolver = LocalContext.current.contentResolver
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             uri?.let { picked -> viewModel.importBook(contentResolver.pickedDocument(picked)) }
         }
-    LibraryContent(state, onAddBook = { picker.launch(pickableMimeTypes) })
+    LibraryContent(
+        state,
+        onAddBook = { picker.launch(pickableMimeTypes) },
+        onOpenBook = { entry -> onOpenBook(entry.bookIdentifier) },
+    )
 }
 
 /**
@@ -63,11 +76,13 @@ fun LibraryScreen(viewModel: LibraryViewModel) {
  *
  * @param state what to show.
  * @param onAddBook opens the document picker.
+ * @param onOpenBook opens the touched book.
  */
 @Composable
 fun LibraryContent(
     state: LibraryUiState,
     onAddBook: () -> Unit,
+    onOpenBook: (LibraryEntry) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -91,16 +106,19 @@ fun LibraryContent(
         if (state.books.isEmpty()) {
             MutedText(stringResource(R.string.library_empty))
         } else {
-            BookList(state.books)
+            BookList(state.books, onOpenBook)
         }
     }
 }
 
 @Composable
-private fun BookList(books: List<LibraryEntry>) {
+private fun BookList(
+    books: List<LibraryEntry>,
+    onOpenBook: (LibraryEntry) -> Unit,
+) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(entrySpacing)) {
         items(books, key = { entry -> entry.bookIdentifier.value }) { entry ->
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth().clickable { onOpenBook(entry) }) {
                 Text(
                     text = entry.title,
                     style = MaterialTheme.typography.bodyLarge,
