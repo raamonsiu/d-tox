@@ -36,6 +36,14 @@ history_rewrite_in_progress() {
     [ -f "$git_dir/CHERRY_PICK_HEAD" ] || [ -f "$git_dir/REVERT_HEAD" ]
 }
 
+# True when HEAD was not created here but reached by a fast-forward (`git pull`/`git merge` to a
+# merge commit that already exists, e.g. a PR merged on GitHub) or is already published on a remote.
+# Topology alone cannot tell these apart from a local merge, and rewriting them diverges from remote.
+head_is_existing_commit() {
+  git reflog -1 --format=%gs HEAD 2>/dev/null | grep -q 'Fast-forward' ||
+    [ -n "$(git branch -r --contains HEAD 2>/dev/null)" ]
+}
+
 # Folds VERSION and README into the commit that was just created.
 amend_head_with_version_files() {
   if ! git diff --quiet -- VERSION README.md; then
@@ -73,6 +81,7 @@ command_merged() {
   local parents parent_arguments=() highest="0.0.0" parent version_after tree new_commit
   mapfile -t parents < <(git rev-list --parents -n 1 HEAD | tr ' ' '\n' | tail -n +2)
   [ "${#parents[@]}" -ge 2 ] || exit 0
+  head_is_existing_commit && exit 0
   for parent in "${parents[@]}"; do
     highest="$(highest_version "$highest" "$(version_at_ref "$parent")")"
     parent_arguments+=(-p "$parent")
