@@ -42,6 +42,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStop() {
+        // Leaving the app may end the process: save the position without waiting for the debounce.
+        readerViewModel.flushProgress()
+        super.onStop()
+    }
+
     /** Reading is full screen; a swipe from the edge shows the bars for a moment. */
     private fun hideSystemBars() {
         WindowCompat.getInsetsController(window, window.decorView).apply {

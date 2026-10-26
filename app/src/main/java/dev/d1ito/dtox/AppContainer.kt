@@ -4,9 +4,13 @@ import dev.d1ito.dtox.data.importing.BookIdentifierCalculator
 import dev.d1ito.dtox.data.importing.BookParser
 import dev.d1ito.dtox.data.importing.Sha256BookIdentifierCalculator
 import dev.d1ito.dtox.data.importing.TextBookParser
+import dev.d1ito.dtox.data.storage.BookDataStore
+import dev.d1ito.dtox.data.storage.FileBookDataStore
+import dev.d1ito.dtox.data.storage.SyncedAtomicFileWriter
 import dev.d1ito.dtox.ui.reader.SampleBookLoader
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import java.io.File
 import java.io.InputStream
 
 /**
@@ -41,16 +45,19 @@ interface AppContainer {
     val bookIdentifierCalculator: BookIdentifierCalculator
     val textBookParser: BookParser
     val sampleBookLoader: SampleBookLoader
+    val bookDataStore: BookDataStore
 }
 
 /**
  * Production wiring. Dependencies are created lazily, once, on first use.
  *
  * @param openSampleBook opens a new stream over the bundled sample book.
+ * @param booksDirectory where per-book user data files live, e.g. `files/books`.
  * @param dispatchers dispatchers given to every dependency.
  */
 class DefaultAppContainer(
     openSampleBook: () -> InputStream,
+    booksDirectory: File,
     override val dispatchers: AppDispatchers = AppDispatchers.Production,
 ) : AppContainer {
     override val bookIdentifierCalculator: BookIdentifierCalculator by lazy {
@@ -61,5 +68,9 @@ class DefaultAppContainer(
 
     override val sampleBookLoader: SampleBookLoader by lazy {
         SampleBookLoader(openSampleBook, bookIdentifierCalculator, textBookParser)
+    }
+
+    override val bookDataStore: BookDataStore by lazy {
+        FileBookDataStore(booksDirectory, SyncedAtomicFileWriter(dispatchers.io), dispatchers.io)
     }
 }
