@@ -12,7 +12,7 @@ Orden pensado para validar antes lo más arriesgado técnicamente (paginación, 
 - [x] Cablear en Gradle: ktlint, detekt (`config/detekt/detekt.yml`), `versionName/versionCode` desde `VERSION`.
 - [x] En GitHub: crear etiquetas `deps-approved`, `deletion-approved`, `ready`, `in-progress` y `blocked`. Probar `scripts/issue.sh` con `gh` y remoto reales.
 - [ ] En GitHub: proteger `main` y exigir los checks.
-- [ ] Recopilar corpus de prueba: 10 EPUB variados (Gutenberg, Standard Ebooks, Calibre), 5 PDF, TXT/MD.
+- [x] Recopilar corpus de prueba: 10 EPUB variados (Gutenberg, Standard Ebooks, Calibre), 5 PDF, TXT/MD (`make corpus`).
 - [ ] Empaquetar fuentes con sus licencias: Libron (hecho), OpenDyslexic e IBM Plex Mono (con el selector de fuente).
 
 **Salida:** proyecto compila, abre una pantalla vacía con el tema propio y pasa CI.
