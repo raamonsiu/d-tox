@@ -5,10 +5,30 @@ package dev.d1ito.dtox.data.importing
  *
  * @property metadata descriptive data declared in the OPF.
  * @property spine content documents in reading order; never empty.
+ * @property tableOfContents the navigation document or NCX, `null` when the book has neither.
  */
 data class EpubPackage(
     val metadata: EpubMetadata,
     val spine: List<EpubSpineItem>,
+    val tableOfContents: EpubTableOfContentsDocument? = null,
+)
+
+/** Format of an EPUB table of contents document. */
+enum class EpubTableOfContentsFormat {
+    /** EPUB 3 navigation document (`nav.xhtml`, manifest `properties="nav"`). */
+    NAVIGATION_DOCUMENT,
+
+    /** EPUB 2 NCX (`toc.ncx`, named by the spine's `toc` attribute). */
+    NCX,
+}
+
+/**
+ * @property path zip entry name of the table of contents, which exists in the archive.
+ * @property format how to read it.
+ */
+data class EpubTableOfContentsDocument(
+    val path: String,
+    val format: EpubTableOfContentsFormat,
 )
 
 /**

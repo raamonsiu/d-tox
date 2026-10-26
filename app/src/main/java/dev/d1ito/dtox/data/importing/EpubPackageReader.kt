@@ -44,11 +44,13 @@ class EpubPackageReader {
             packageElementOf(archive, packagePath).getOrElse { failure ->
                 return Result.failure(failure)
             }
-        val spine = spineOf(packageElement, archiveDirectoryOf(packagePath), archive)
+        val packageDirectory = archiveDirectoryOf(packagePath)
+        val spine = spineOf(packageElement, packageDirectory, archive)
         return if (spine.isEmpty()) {
             Result.failure(EpubPackageError.EmptySpine(packagePath))
         } else {
-            Result.success(EpubPackage(metadataOf(packageElement), spine))
+            val tableOfContents = tableOfContentsOf(packageElement, packageDirectory, archive)
+            Result.success(EpubPackage(metadataOf(packageElement), spine, tableOfContents))
         }
     }
 
@@ -117,6 +119,34 @@ class EpubPackageReader {
                     )
                 }
         }
+    }
+
+    /**
+     * The EPUB 3 navigation document (manifest item with the `nav` property) if present, else the
+     * EPUB 2 NCX named by the spine's `toc` attribute; `null` if neither exists in the archive.
+     */
+    private fun tableOfContentsOf(
+        packageElement: Element,
+        packageDirectory: String,
+        archive: ZipFile,
+    ): EpubTableOfContentsDocument? {
+        val items = packageElement.descendants("item")
+        val navigation =
+            items.firstOrNull { item -> "nav" in item.getAttribute("properties").split(' ') }
+        val ncxIdentifier = packageElement.descendants("spine").firstOrNull()?.getAttribute("toc")
+        val ncx = items.firstOrNull { item -> item.getAttribute("id") == ncxIdentifier }
+        val existingPath = { item: Element? ->
+            item
+                ?.let { found -> resolveArchivePath(packageDirectory, found.getAttribute("href")) }
+                ?.takeIf { path -> archive.getEntry(path) != null }
+        }
+        return existingPath(navigation)
+            ?.let { path ->
+                EpubTableOfContentsDocument(path, EpubTableOfContentsFormat.NAVIGATION_DOCUMENT)
+            }
+            ?: existingPath(ncx)?.let { path ->
+                EpubTableOfContentsDocument(path, EpubTableOfContentsFormat.NCX)
+            }
     }
 
     private fun metadataOf(packageElement: Element): EpubMetadata {
