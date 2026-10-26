@@ -11,8 +11,10 @@ import dev.d1ito.dtox.data.storage.BookDataStore
 import dev.d1ito.dtox.data.storage.FileBookDataStore
 import dev.d1ito.dtox.data.storage.FileLibraryIndex
 import dev.d1ito.dtox.data.storage.FileParsedBookCache
+import dev.d1ito.dtox.data.storage.FileReadingSettingsStore
 import dev.d1ito.dtox.data.storage.LibraryIndex
 import dev.d1ito.dtox.data.storage.ParsedBookCache
+import dev.d1ito.dtox.data.storage.ReadingSettingsStore
 import dev.d1ito.dtox.data.storage.SyncedAtomicFileWriter
 import dev.d1ito.dtox.ui.reader.SampleBookLoader
 import kotlinx.coroutines.CoroutineDispatcher
@@ -57,14 +59,15 @@ interface AppContainer {
     val libraryIndex: LibraryIndex
     val bookImporter: BookImporter
     val parsedBookCache: ParsedBookCache
+    val readingSettingsStore: ReadingSettingsStore
 }
 
 /**
  * Production wiring. Dependencies are created lazily, once, on first use.
  *
  * @param openSampleBook opens a new stream over the bundled sample book.
- * @param filesDirectory private app storage for user data (`files/`); holds `library/`, `books/`
- *   and `library-index.json` (docs/03-architecture.md §Almacenamiento y permisos).
+ * @param filesDirectory private app storage for user data (`files/`); holds `library/`, `books/`,
+ *   `library-index.json` and `settings.json` (docs/03-architecture.md §Almacenamiento y permisos).
  * @param cacheDirectory private cache (`cache/`) for temporary copies and parsed books.
  * @param dispatchers dispatchers given to every dependency.
  */
@@ -120,5 +123,9 @@ class DefaultAppContainer(
 
     override val parsedBookCache: ParsedBookCache by lazy {
         FileParsedBookCache(File(cacheDirectory, "parsed"), fileWriter, dispatchers.io)
+    }
+
+    override val readingSettingsStore: ReadingSettingsStore by lazy {
+        FileReadingSettingsStore(File(filesDirectory, "settings.json"), fileWriter, dispatchers.io)
     }
 }
