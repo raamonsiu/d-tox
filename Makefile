@@ -16,7 +16,7 @@ export ANDROID_SERIAL := $(DEVICE)
 endif
 
 .DEFAULT_GOAL := help
-.PHONY: help setup build test lint format check clean devices install run debug logcat
+.PHONY: help setup build test lint format check corpus clean devices install run debug logcat
 
 help: ## List the available targets
 	@grep -E '^[a-z]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  make %-8s %s\n", $$1, $$2}'
@@ -37,6 +37,9 @@ format: ## Auto-format Kotlin sources with ktlint
 	$(GRADLE) ktlintFormat
 
 check: test lint ## Run tests and linters (what CI checks)
+
+corpus: ## Download the test book corpus and verify its checksums
+	scripts/corpus.sh
 
 clean: ## Delete build outputs
 	$(GRADLE) clean

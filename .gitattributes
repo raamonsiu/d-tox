@@ -4,3 +4,5 @@ VERSION merge=dtox-version
 README.md merge=dtox-readme
 * text=auto eol=lf
 *.ttf binary
+# Corpus fixtures keep their exact bytes (encodings, BOM, CRLF) for the checksums.
+app/src/test/resources/corpus/files/** -text

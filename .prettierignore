@@ -7,3 +7,4 @@ local.properties
 node_modules/
 *.kt
 *.kts
+app/src/test/resources/corpus/files/

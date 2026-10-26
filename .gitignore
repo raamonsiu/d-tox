@@ -10,3 +10,6 @@
 local.properties
 .claude/worktrees/
 .claude/settings.local.json
+
+# Test corpus: large files are downloaded by `make corpus`, never versioned.
+app/src/test/resources/corpus/downloads/
