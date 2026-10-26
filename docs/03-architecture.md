@@ -30,7 +30,7 @@ app/
  ├─ ui/            Compose: library, reader, shortreads, settings, theme
  ├─ domain/        Modelos (Book, Chapter, Block, Anchor, Annotation), casos de uso
  ├─ data/
- │   ├─ import/    EpubParser, TextParser, PdfExtractor → Book
+ │   ├─ importing/ EpubParser, TextParser, PdfExtractor → Book
  │   ├─ storage/   UserDataStore (JSON por libro), SettingsStore, LibraryIndex (Room)
  │   ├─ feed/      FeedClient, FeedRepository, ShortReadsCache
  │   └─ notify/    ReminderScheduler, NotificationPublisher

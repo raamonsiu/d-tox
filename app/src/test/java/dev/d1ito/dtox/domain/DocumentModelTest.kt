@@ -29,6 +29,22 @@ class DocumentModelTest {
     }
 
     @Test
+    fun bookIdentifier_fromDigestRejectsTooShortDigest() {
+        assertFailsWith<DocumentModelError.InvalidBookIdentifier>(
+            BookIdentifier.fromSha256Digest(ByteArray(8)),
+        )
+    }
+
+    @Test
+    fun bookIdentifier_fromDigestKeepsLeadingZeros() {
+        val digest = ByteArray(32) { position -> if (position == 0) 0x00 else 0xff.toByte() }
+        assertEquals(
+            "sha256:00ffffffffffffffffffffffffffffff",
+            BookIdentifier.fromSha256Digest(digest).getOrThrow().value,
+        )
+    }
+
+    @Test
     fun heading_acceptsLevelsOneToThree() {
         (1..3).forEach { level ->
             assertEquals(
