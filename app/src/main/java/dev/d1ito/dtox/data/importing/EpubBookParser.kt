@@ -23,8 +23,9 @@ private val contentMediaTypes = setOf("application/xhtml+xml", "text/html")
 /**
  * Parses EPUB 2 and 3 files (D-09): the package structure with [EpubPackageReader] and every
  * content document with [XhtmlBlockReader]. Each linear spine document with readable text becomes
- * a chapter, titled with its first heading. Documents that are missing, unreadable, not XHTML,
- * non-linear (covers, pop-up notes) or without text are skipped instead of failing the book.
+ * a chapter, titled from the table of contents or else with its first heading. Documents that are
+ * missing, unreadable, not XHTML, non-linear (covers, pop-up notes) or without text are skipped
+ * instead of failing the book.
  *
  * The stream is copied to a temporary file first, because a zip archive is read through its
  * central directory; the copy is always deleted before returning.
@@ -79,17 +80,36 @@ class EpubBookParser(
             epubPackage.spine.filter { item ->
                 item.isLinear && item.mediaType in contentMediaTypes
             }
-        val chapterBlocks =
+        val (documents, tableOfContentsTitles) =
             ZipFile(epubFile).use { archive ->
-                readableItems.mapNotNull { item -> blocksOf(archive, item.path) }
+                val readDocuments =
+                    readableItems.mapNotNull { item ->
+                        blocksOf(archive, item.path)?.let { blocks -> item.path to blocks }
+                    }
+                val titles =
+                    epubPackage.tableOfContents
+                        ?.let { tableOfContents -> titlesOrEmpty(archive, tableOfContents) }
+                        .orEmpty()
+                readDocuments to titles
             }
-        if (chapterBlocks.isEmpty()) return Result.failure(BookParseError.NoReadableText(fileName))
+        if (documents.isEmpty()) return Result.failure(BookParseError.NoReadableText(fileName))
         return Book.create(
             identifier,
             metadataOf(epubPackage.metadata, fileName),
-            chaptersFromDocuments(chapterBlocks),
+            chaptersFromDocuments(documents, tableOfContentsTitles),
         )
     }
+
+    /** TOC titles by document path; a damaged TOC only loses titles, never the book. */
+    private fun titlesOrEmpty(
+        archive: ZipFile,
+        tableOfContents: EpubTableOfContentsDocument,
+    ): Map<String, String> =
+        try {
+            titlesFromTableOfContents(archive, tableOfContents)
+        } catch (expectedDamagedTableOfContents: IOException) {
+            emptyMap()
+        }
 
     /** @return the document's blocks, or `null` if it is missing, unreadable or has no text. */
     private fun blocksOf(
@@ -119,10 +139,18 @@ private fun metadataOf(
         language = metadata.language,
     )
 
-/** One chapter per document, numbered by position and titled with its first heading. */
-private fun chaptersFromDocuments(documents: List<List<Block>>): List<Chapter> =
-    documents.mapIndexed { index, blocks ->
-        val title = blocks.filterIsInstance<Block.Heading>().firstOrNull()?.text
+/**
+ * One chapter per document (`path to blocks`), numbered by position and titled from the table of
+ * contents, or with its first heading when the TOC does not link it (RF-16).
+ */
+private fun chaptersFromDocuments(
+    documents: List<Pair<String, List<Block>>>,
+    tableOfContentsTitles: Map<String, String>,
+): List<Chapter> =
+    documents.mapIndexed { index, (path, blocks) ->
+        val title =
+            tableOfContentsTitles[path]
+                ?: blocks.filterIsInstance<Block.Heading>().firstOrNull()?.text
         // index comes from the list position, so it is never negative.
         Chapter.create(index, title, blocks).getOrThrow()
     }
