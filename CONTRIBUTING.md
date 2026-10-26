@@ -12,6 +12,9 @@
 6. **Commit** con el slug como primera línea; los hooks validan formato, lint y suben la versión.
 7. **PR a `main`** con la plantilla. Título = slug.
 
+Con Claude Code, las skills de `.claude/skills/` encadenan estos pasos: `/take-issue [número]` (2–3),
+`/check` (5) y `/open-pr` (7). Las reglas siguen en [CLAUDE.md](CLAUDE.md); las skills solo las referencian.
+
 ## Slug
 
 `DTOX[-ticket](tipo)/descripcion_corta`: minúsculas, `_`, máximo 6 palabras.
