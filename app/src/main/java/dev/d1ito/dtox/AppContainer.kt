@@ -14,14 +14,21 @@ import java.io.InputStream
  *
  * @property io blocking file and stream work.
  * @property computation CPU-bound work such as pagination.
+ * @property main UI state updates, e.g. in ViewModels.
  */
 data class AppDispatchers(
     val io: CoroutineDispatcher,
     val computation: CoroutineDispatcher,
+    val main: CoroutineDispatcher,
 ) {
     companion object {
         /** The production dispatchers. */
-        val Production = AppDispatchers(io = Dispatchers.IO, computation = Dispatchers.Default)
+        val Production =
+            AppDispatchers(
+                io = Dispatchers.IO,
+                computation = Dispatchers.Default,
+                main = Dispatchers.Main.immediate,
+            )
     }
 }
 

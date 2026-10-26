@@ -33,7 +33,12 @@ class AppContainerTest {
                 timesTheSampleWasOpened++
                 ThreadRecordingStream(SAMPLE_MARKDOWN.toByteArray(), readingThreadNames)
             },
-            dispatchers = AppDispatchers(io = ioDispatcher, computation = Dispatchers.Unconfined),
+            dispatchers =
+                AppDispatchers(
+                    io = ioDispatcher,
+                    computation = Dispatchers.Unconfined,
+                    main = Dispatchers.Unconfined,
+                ),
         )
 
     @After

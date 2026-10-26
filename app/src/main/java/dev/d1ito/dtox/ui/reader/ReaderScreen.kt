@@ -19,19 +19,15 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.PagerState
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +48,7 @@ import dev.d1ito.dtox.pagination.Viewport
 import dev.d1ito.dtox.pagination.pageIndexOf
 import dev.d1ito.dtox.ui.theme.DTOXTheme
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -71,19 +68,20 @@ private val readingColumnMaxWidth = 600.dp
 
 /**
  * Full screen reader for one chapter: only text, paginated off the main thread, turned by swipe
- * or by tapping the left/right edges. The position survives rotation through its anchor.
+ * or by tapping the left/right edges. It opens at [position] and reports every page turned to,
+ * so whoever owns the position keeps it across rotation and new paginations.
  *
  * @param chapter chapter to read.
+ * @param position where to open, inside [chapter], and who receives the page turns.
  * @param paginationDispatcher where pages are measured; never the main thread.
  */
 @Composable
 fun ReaderScreen(
     chapter: Chapter,
+    position: ReadingPosition,
     paginationDispatcher: CoroutineDispatcher,
     modifier: Modifier = Modifier,
 ) {
-    var savedBlock by rememberSaveable { mutableIntStateOf(0) }
-    var savedOffset by rememberSaveable { mutableIntStateOf(0) }
     BoxWithConstraints(
         modifier = modifier.readerPageArea(),
         contentAlignment = Alignment.TopCenter,
@@ -97,16 +95,8 @@ fun ReaderScreen(
         when {
             pages == null -> Unit // Still paginating: keep the empty page background.
             pages.isFailure -> ReaderMessage(stringResource(R.string.reader_chapter_unavailable))
-            else -> {
-                val position =
-                    ReadingPosition(
-                        Anchor.create(chapter.index, savedBlock, savedOffset).getOrNull(),
-                    ) { anchor ->
-                        savedBlock = anchor.block
-                        savedOffset = anchor.offset
-                    }
+            else ->
                 ChapterPager(PaginatedChapter(chapter, pages.getOrThrow(), columnWidth), position)
-            }
         }
     }
 }
@@ -135,9 +125,9 @@ private class PaginatedChapter(
 
 /**
  * @property restoredAnchor position to open at, e.g. after rotation; `null` opens the first page.
- * @property onPageSettled receives the start anchor of every page the reader stops on.
+ * @property onPageSettled receives the start anchor of every page the reader turns to.
  */
-private class ReadingPosition(
+class ReadingPosition(
     val restoredAnchor: Anchor?,
     val onPageSettled: (Anchor) -> Unit,
 )
@@ -171,10 +161,11 @@ private fun ChapterPager(
     position: ReadingPosition,
 ) {
     val pages = paginated.pages
-    // New pages (rotation, font change) need a new pager opened at the anchor's page.
+    // New pages (rotation, font change) need a new pager opened at the anchor's page. The pager
+    // state is not saveable on purpose: the anchor, not a stale page number, decides the page.
     key(pages) {
         val initialPage = position.restoredAnchor?.let { anchor -> pageIndexOf(pages, anchor) } ?: 0
-        val pagerState = rememberPagerState(initialPage = initialPage) { pages.size }
+        val pagerState = remember { PagerState(currentPage = initialPage) { pages.size } }
         val animationsEnabled = rememberAnimationsEnabled()
         ReportSettledPages(pagerState, pages, position.onPageSettled)
         HorizontalPager(
@@ -198,7 +189,7 @@ private fun ChapterPager(
     }
 }
 
-/** Calls [onPageSettled] with the start anchor of each page the pager settles on. */
+/** Calls [onPageSettled] with the start anchor of each page the reader turns to after opening. */
 @Composable
 private fun ReportSettledPages(
     pagerState: PagerState,
@@ -206,7 +197,9 @@ private fun ReportSettledPages(
     onPageSettled: (Anchor) -> Unit,
 ) {
     LaunchedEffect(pagerState, pages) {
-        snapshotFlow { pagerState.settledPage }.collect { page ->
+        // The first value is the page just restored, not a page turn: reporting it would move the
+        // anchor to that page's start and drift a little on every rotation.
+        snapshotFlow { pagerState.settledPage }.drop(1).collect { page ->
             onPageSettled(pages[page].startAnchor)
         }
     }
