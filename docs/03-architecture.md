@@ -12,6 +12,7 @@
 | Índice de biblioteca     | Room (caché reconstruible)                                                             | Consultas ordenadas y rápidas                                                                |
 | Archivos de usuario      | JSON con `kotlinx.serialization`                                                       | Ver [02-data-formats.md](02-data-formats.md)                                                 |
 | EPUB                     | Parser propio: zip + OPF/spine + `jsoup` para XHTML                                    | El toolkit Readium está pensado para su propio renderizador; aquí renderizamos modelo propio |
+| TXT / Markdown           | Lector propio para texto plano; `commonmark-java` para Markdown (D-28)                 | El árbol CommonMark se mapea al modelo de documento                                          |
 | PDF                      | PdfBox-Android (Apache 2.0) para texto; `PdfRenderer` del sistema para fallback visual | Evita MuPDF (AGPL)                                                                           |
 | Red                      | `HttpURLConnection` / OkHttp; solo descarga del feed                                   |                                                                                              |
 | Trabajo en segundo plano | WorkManager                                                                            | Persistente tras reinicio                                                                    |
