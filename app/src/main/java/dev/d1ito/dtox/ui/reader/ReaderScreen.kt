@@ -120,12 +120,14 @@ private class PaginatedChapter(
  * @property onPageSettled receives the start anchor of every page the reader turns to.
  * @property onNextChapter called when the reader turns forward from the last page.
  * @property onPreviousChapter called when the reader turns back from the first page.
+ * @property onCenterTap called for a tap in the center of the page (between the edge zones).
  */
 class ReadingPosition(
     val restoredAnchor: Anchor?,
     val onPageSettled: (Anchor) -> Unit,
     val onNextChapter: () -> Unit = {},
     val onPreviousChapter: () -> Unit = {},
+    val onCenterTap: () -> Unit = {},
 )
 
 /**

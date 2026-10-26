@@ -36,7 +36,8 @@ internal fun Modifier.pageTurnGestures(
 
 /**
  * Tapping the left or right [EDGE_TAP_FRACTION] of the page goes to the previous or next page;
- * past the first or last page it asks [position] for the adjacent chapter.
+ * past the first or last page it asks [position] for the adjacent chapter. A tap in between goes
+ * to [ReadingPosition.onCenterTap].
  */
 @Composable
 private fun Modifier.edgeTapsTurnPages(
@@ -51,11 +52,11 @@ private fun Modifier.edgeTapsTurnPages(
                 when {
                     tap.x < size.width * EDGE_TAP_FRACTION -> -1
                     tap.x > size.width * (1 - EDGE_TAP_FRACTION) -> 1
-                    else -> 0 // The center will open the reading controls (another issue).
+                    else -> 0
                 }
             val target = pagerState.currentPage + step
             when {
-                step == 0 -> return@detectTapGestures
+                step == 0 -> return@detectTapGestures position.onCenterTap()
                 target < 0 -> return@detectTapGestures position.onPreviousChapter()
                 target >= pagerState.pageCount -> return@detectTapGestures position.onNextChapter()
             }
