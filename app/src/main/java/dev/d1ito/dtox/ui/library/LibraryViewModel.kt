@@ -9,8 +9,10 @@ import dev.d1ito.dtox.data.importing.BookImportError
 import dev.d1ito.dtox.data.importing.BookImporter
 import dev.d1ito.dtox.data.importing.BookParseError
 import dev.d1ito.dtox.data.importing.ImportedBook
+import dev.d1ito.dtox.data.storage.LibraryBookRemover
 import dev.d1ito.dtox.data.storage.LibraryEntry
 import dev.d1ito.dtox.data.storage.LibraryIndex
+import dev.d1ito.dtox.domain.BookIdentifier
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -20,6 +22,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.io.InputStream
@@ -39,19 +43,20 @@ class PickedDocument(
     val openStream: () -> InputStream,
 )
 
-/** Feedback after an import or load attempt; the screen turns it into a sentence. */
+/** Feedback after loading, importing or removing; the screen turns it into a sentence. */
 enum class LibraryMessage {
     UnsupportedFormat,
     NoReadableText,
     ImportFailed,
     LibraryUnavailable,
+    RemoveFailed,
 }
 
 /**
  * @property books the library list in display order.
  * @property isImporting an import is running; the add action is disabled meanwhile.
- * @property message what went wrong last, `null` when nothing to report; the next import clears
- *   it.
+ * @property message what went wrong last, `null` when nothing to report; the next import or
+ *   removal clears it.
  */
 data class LibraryUiState(
     val books: List<LibraryEntry> = emptyList(),
@@ -60,7 +65,9 @@ data class LibraryUiState(
 )
 
 /**
- * Shows the library index and imports picked files into it (RF-01, RF-02).
+ * Shows the library index, imports picked files into it and removes books from it (RF-01, RF-02,
+ * RF-04). Imports and removals run one at a time, so removing a book while the same file is
+ * being imported again cannot leave a copy without its index entry.
  *
  * @param ioDispatcher where the picked file is opened; never the main thread.
  * @param scope runs the work and is cancelled when the ViewModel is cleared.
@@ -68,9 +75,11 @@ data class LibraryUiState(
 class LibraryViewModel(
     private val libraryIndex: LibraryIndex,
     private val bookImporter: BookImporter,
+    private val bookRemover: LibraryBookRemover,
     private val ioDispatcher: CoroutineDispatcher,
     private val scope: CoroutineScope,
 ) : ViewModel(scope) {
+    private val libraryChanges = Mutex()
     private val importing = MutableStateFlow(false)
     private val message = MutableStateFlow<LibraryMessage?>(null)
 
@@ -90,10 +99,26 @@ class LibraryViewModel(
         importing.value = true
         message.value = null
         scope.launch {
-            importedBookOf(document)
-                .fold(onSuccess = { book -> addToIndex(book) }, onFailure = { Result.failure(it) })
-                .onFailure { failure -> message.value = messageFor(failure) }
+            libraryChanges.withLock {
+                importedBookOf(document)
+                    .fold(onSuccess = { book ->
+                        addToIndex(book)
+                    }, onFailure = { Result.failure(it) })
+                    .onFailure { failure -> message.value = messageFor(failure) }
+            }
             importing.value = false
+        }
+    }
+
+    /**
+     * Removes [bookIdentifier] from the library (RF-04): its copy, cache and entry go, the
+     * original file and the reading data stay. A failure shows [LibraryMessage.RemoveFailed].
+     */
+    fun removeBook(bookIdentifier: BookIdentifier) {
+        message.value = null
+        scope.launch {
+            val removal = libraryChanges.withLock { bookRemover.remove(bookIdentifier) }
+            removal.onFailure { message.value = LibraryMessage.RemoveFailed }
         }
     }
 
@@ -140,6 +165,7 @@ class LibraryViewModel(
                     LibraryViewModel(
                         libraryIndex = container.libraryIndex,
                         bookImporter = container.bookImporter,
+                        bookRemover = container.libraryBookRemover,
                         ioDispatcher = container.dispatchers.io,
                         scope = CoroutineScope(SupervisorJob() + container.dispatchers.main),
                     )

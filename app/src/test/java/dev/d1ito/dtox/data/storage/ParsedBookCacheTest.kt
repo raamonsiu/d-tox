@@ -11,6 +11,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -82,6 +83,29 @@ class ParsedBookCacheTest {
 
             assertNull(case, read(BOOK_HEX))
             assertFalse("$case must be deleted", cacheFile.exists())
+        }
+    }
+
+    @Test
+    fun remove_forgetsTheEntry_andSucceedsWhenNothingIsCached() {
+        write(sampleBook(BOOK_HEX))
+
+        runBlocking { cache.remove(identifier(BOOK_HEX)) }.getOrThrow()
+        runBlocking { cache.remove(identifier(BOOK_HEX)) }.getOrThrow()
+
+        assertNull(read(BOOK_HEX))
+    }
+
+    @Test
+    fun remove_failsWithIOException_whenTheEntryCannotBeDeleted() {
+        write(sampleBook(BOOK_HEX))
+        cacheDirectory.setWritable(false)
+        try {
+            val result = runBlocking { cache.remove(identifier(BOOK_HEX)) }
+
+            assertTrue("Got $result", result.exceptionOrNull() is java.io.IOException)
+        } finally {
+            cacheDirectory.setWritable(true)
         }
     }
 

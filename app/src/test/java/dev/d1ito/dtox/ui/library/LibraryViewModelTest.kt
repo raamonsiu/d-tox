@@ -5,6 +5,8 @@ import dev.d1ito.dtox.data.importing.Sha256BookIdentifierCalculator
 import dev.d1ito.dtox.data.importing.TextBookParser
 import dev.d1ito.dtox.data.storage.FileBookDataStore
 import dev.d1ito.dtox.data.storage.FileLibraryIndex
+import dev.d1ito.dtox.data.storage.FileParsedBookCache
+import dev.d1ito.dtox.data.storage.LibraryBookRemover
 import dev.d1ito.dtox.data.storage.SyncedAtomicFileWriter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -105,6 +107,65 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun removingABook_takesItOffTheList_andItsCopyOutOfTheLibrary() {
+        val viewModel = viewModel()
+        viewModel.importBook(document("cartas.md", MARKDOWN_BOOK))
+        val listed =
+            viewModel.state.value.books
+                .single()
+
+        viewModel.removeBook(listed.bookIdentifier)
+
+        assertEquals(
+            emptyList<String>(),
+            viewModel.state.value.books
+                .map { it.title },
+        )
+        assertEquals(emptyList<String>(), libraryDirectory.list()?.toList().orEmpty())
+        assertNull(viewModel.state.value.message)
+    }
+
+    @Test
+    fun aSuccessfulRemoval_clearsAnEarlierMessage() {
+        val viewModel = viewModel()
+        viewModel.importBook(document("cartas.md", MARKDOWN_BOOK))
+        viewModel.importBook(document("foto.jpg", "x", mimeType = "image/jpeg"))
+        assertEquals(LibraryMessage.UnsupportedFormat, viewModel.state.value.message)
+
+        viewModel.removeBook(
+            viewModel.state.value.books
+                .single()
+                .bookIdentifier,
+        )
+
+        assertNull(viewModel.state.value.message)
+        assertEquals(
+            emptyList<String>(),
+            viewModel.state.value.books
+                .map { it.title },
+        )
+    }
+
+    @Test
+    fun aFailedRemoval_showsRemoveFailed() {
+        val viewModel = viewModel()
+        viewModel.importBook(document("cartas.md", MARKDOWN_BOOK))
+        // A file where the index should be written makes the last step fail.
+        File(filesDirectory, "library-index.json").apply {
+            delete()
+            mkdir()
+        }
+
+        viewModel.removeBook(
+            viewModel.state.value.books
+                .single()
+                .bookIdentifier,
+        )
+
+        assertEquals(LibraryMessage.RemoveFailed, viewModel.state.value.message)
+    }
+
+    @Test
     fun unreadableLibrary_showsLibraryUnavailable() {
         // A file where the library directory should be cannot be listed for a rebuild.
         libraryDirectory.writeText("not a directory")
@@ -122,9 +183,17 @@ class LibraryViewModelTest {
                 fileWriter = writer,
                 ioDispatcher = Dispatchers.Unconfined,
             )
+        val remover =
+            LibraryBookRemover(
+                libraryDirectory,
+                FileParsedBookCache(File(filesDirectory, "parsed"), writer, Dispatchers.Unconfined),
+                libraryIndex,
+                Dispatchers.Unconfined,
+            )
         return LibraryViewModel(
             libraryIndex,
             importer,
+            remover,
             Dispatchers.Unconfined,
             CoroutineScope(Dispatchers.Unconfined),
         )

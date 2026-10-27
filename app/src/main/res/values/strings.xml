@@ -15,4 +15,9 @@
     <string name="library_no_readable_text">Ese archivo no tiene texto que se pueda leer.</string>
     <string name="library_import_failed">No se pudo importar el libro.</string>
     <string name="library_unavailable">No se pudo cargar la biblioteca.</string>
+    <string name="library_remove_action">Quitar de la biblioteca</string>
+    <string name="library_remove_question">¿Quitar «%1$s» de la biblioteca? Tu archivo original no se toca y el progreso se guarda por si lo vuelves a añadir.</string>
+    <string name="library_remove_confirm">Quitar</string>
+    <string name="library_remove_cancel">Cancelar</string>
+    <string name="library_remove_failed">No se pudo quitar el libro.</string>
 </resources>
