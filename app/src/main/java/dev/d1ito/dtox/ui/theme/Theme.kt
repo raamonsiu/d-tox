@@ -2,6 +2,7 @@ package dev.d1ito.dtox.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -9,13 +10,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import dev.d1ito.dtox.domain.ReadingTheme
 
 private val LocalReadingPalette = staticCompositionLocalOf { ReadingPalettes.Paper }
 
 /**
  * Applies the D-TOX theme: a [ReadingPalette] plus the reading [Typography].
  *
- * @param palette theme to apply; by default follows the system light/dark mode (paper/night).
+ * @param palette theme to apply, usually [readingPaletteFor] the user's choice; by default it
+ *   follows the system light/dark mode (paper/night).
  * @param content UI drawn with the theme.
  */
 @Composable
@@ -23,10 +26,12 @@ fun DTOXTheme(
     palette: ReadingPalette = systemReadingPalette(),
     content: @Composable () -> Unit,
 ) {
-    CompositionLocalProvider(LocalReadingPalette provides palette) {
-        MaterialTheme(
-            colorScheme = palette.toColorScheme(),
-            typography = Typography,
+    MaterialTheme(colorScheme = palette.toColorScheme(), typography = Typography) {
+        // Text without an explicit color takes the palette's text color, not Material's default
+        // black (screens have no Surface to provide it), so titles stay readable in Night.
+        CompositionLocalProvider(
+            LocalReadingPalette provides palette,
+            LocalContentColor provides palette.text,
             content = content,
         )
     }
@@ -35,7 +40,7 @@ fun DTOXTheme(
 /** Paper in light mode and night in dark mode, following the system setting. */
 @Composable
 private fun systemReadingPalette(): ReadingPalette =
-    if (isSystemInDarkTheme()) ReadingPalettes.Night else ReadingPalettes.Paper
+    readingPaletteFor(ReadingTheme.SYSTEM, systemIsDark = isSystemInDarkTheme())
 
 /** Access to the current D-TOX theme values from composables. */
 object DTOXTheme {
