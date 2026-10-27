@@ -116,6 +116,39 @@ class ReaderNavigationTest {
         assertSame(ReaderUiState.Closed, viewModel.state.value)
     }
 
+    @Test
+    fun choosingAChapter_opensItsFirstPage_andSavesItLikeAPageTurn() {
+        val savedState = SavedStateHandle()
+        val viewModel = viewModel(savedState).apply { open(identifier(FIRST_HEX)) }
+
+        viewModel.onChapterSelected(1)
+        viewModel.flushProgress()
+
+        assertEquals(ReaderUiState.Reading(book(FIRST_HEX), anchor(1, 0, 0)), viewModel.state.value)
+        assertEquals(1, savedState.get<Int>("reader.chapter"))
+        assertEquals(
+            1,
+            store.writes
+                .single()
+                .progress
+                ?.anchor
+                ?.chapter,
+        )
+    }
+
+    @Test
+    fun choosingAChapterOutsideTheBook_orWithNothingOpen_isIgnored() {
+        val viewModel = viewModel(SavedStateHandle())
+        viewModel.onChapterSelected(1)
+        assertSame(ReaderUiState.Closed, viewModel.state.value)
+
+        viewModel.open(identifier(FIRST_HEX))
+        viewModel.onChapterSelected(2)
+        viewModel.onChapterSelected(-1)
+
+        assertEquals(ReaderUiState.Reading(book(FIRST_HEX), anchor(0, 0, 0)), viewModel.state.value)
+    }
+
     private fun viewModel(savedState: SavedStateHandle): ReaderViewModel =
         testReaderViewModel(savedState, store, openedBooks) { bookIdentifier ->
             loads += bookIdentifier

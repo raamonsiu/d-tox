@@ -5,6 +5,8 @@
     <string name="reader_controls_back">Volver</string>
     <string name="reader_controls_chapters">Capítulos</string>
     <string name="reader_controls_text">Texto</string>
+    <string name="chapter_list_title">Capítulos</string>
+    <string name="chapter_untitled">Capítulo %1$d</string>
     <string name="library_title">Biblioteca</string>
     <string name="library_add">Añadir libro</string>
     <string name="library_importing">Importando…</string>
