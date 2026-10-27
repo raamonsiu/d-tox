@@ -21,6 +21,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import dev.d1ito.dtox.data.storage.ReadingSettingsStore
+import dev.d1ito.dtox.domain.ReadingSettings
 import dev.d1ito.dtox.ui.library.LibraryScreen
 import dev.d1ito.dtox.ui.library.LibraryViewModel
 import dev.d1ito.dtox.ui.reader.ReaderControlActions
@@ -54,7 +56,12 @@ class MainActivity : ComponentActivity() {
         hideSystemBars()
         setContent {
             DTOXTheme {
-                App(libraryViewModel, readerViewModel, container.dispatchers.computation)
+                App(
+                    libraryViewModel,
+                    readerViewModel,
+                    container.readingSettingsStore,
+                    container.dispatchers.computation,
+                )
             }
         }
     }
@@ -79,14 +86,22 @@ class MainActivity : ComponentActivity() {
 private fun App(
     libraryViewModel: LibraryViewModel,
     readerViewModel: ReaderViewModel,
+    settingsStore: ReadingSettingsStore,
     paginationDispatcher: CoroutineDispatcher,
 ) {
     val readerState by readerViewModel.state.collectAsState()
+    // null until read from disk: paginating with the defaults first would paginate twice.
+    val settings by settingsStore.settings.collectAsState(initial = null)
     if (readerState == ReaderUiState.Closed) {
         LibraryScreen(libraryViewModel, onOpenBook = readerViewModel::open)
     } else {
         BackHandler(onBack = readerViewModel::close)
-        Reader(readerState, readerViewModel, paginationDispatcher)
+        val loadedSettings = settings
+        if (loadedSettings == null) {
+            EmptyScreen()
+        } else {
+            Reader(readerState, readerViewModel, loadedSettings, paginationDispatcher)
+        }
     }
 }
 
@@ -94,12 +109,14 @@ private fun App(
 private fun Reader(
     state: ReaderUiState,
     viewModel: ReaderViewModel,
+    settings: ReadingSettings,
     paginationDispatcher: CoroutineDispatcher,
 ) {
     when (state) {
         ReaderUiState.Closed, ReaderUiState.Loading -> EmptyScreen()
         ReaderUiState.Unavailable -> ReaderMessage(stringResource(R.string.reader_book_unavailable))
-        is ReaderUiState.Reading -> ReadingWithControls(state, viewModel, paginationDispatcher)
+        is ReaderUiState.Reading ->
+            ReadingWithControls(state, viewModel, settings, paginationDispatcher)
     }
 }
 
@@ -108,6 +125,7 @@ private fun Reader(
 private fun ReadingWithControls(
     state: ReaderUiState.Reading,
     viewModel: ReaderViewModel,
+    settings: ReadingSettings,
     paginationDispatcher: CoroutineDispatcher,
 ) {
     var controlsVisible by remember { mutableStateOf(false) }
@@ -124,6 +142,7 @@ private fun ReadingWithControls(
                     onCenterTap = { controlsVisible = !controlsVisible },
                 ),
             paginationDispatcher = paginationDispatcher,
+            settings = settings,
         )
         ReaderControlsBar(
             visible = controlsVisible,
