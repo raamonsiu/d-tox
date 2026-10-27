@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.d1ito.dtox.data.importing.MarkdownBlockReader
 import dev.d1ito.dtox.domain.Chapter
+import dev.d1ito.dtox.domain.ReadingSettings
 import dev.d1ito.dtox.domain.textOrNull
 import dev.d1ito.dtox.pagination.Page
 import dev.d1ito.dtox.pagination.PageFragment
@@ -76,10 +77,37 @@ class PageContentFitTest {
     fun drawnPages_fitTheMeasuredViewport_withDoubleSystemFontScale() =
         assertPagesFit(widthPixels = 900, heightPixels = 1400, fontScale = 2f)
 
+    @Test
+    fun drawnPages_fitTheMeasuredViewport_withTheSmallestTextSettings() =
+        assertPagesFit(
+            widthPixels = 900,
+            heightPixels = 1400,
+            settings =
+                ReadingSettings.Default
+                    .edited(
+                        textSizeSp = 14,
+                        lineSpacing = 1.5,
+                    ).getOrThrow(),
+        )
+
+    @Test
+    fun drawnPages_fitTheMeasuredViewport_withTheLargestTextSettings() =
+        assertPagesFit(
+            widthPixels = 900,
+            heightPixels = 1400,
+            settings =
+                ReadingSettings.Default
+                    .edited(
+                        textSizeSp = 28,
+                        lineSpacing = 1.7,
+                    ).getOrThrow(),
+        )
+
     private fun assertPagesFit(
         widthPixels: Int,
         heightPixels: Int,
         fontScale: Float? = null,
+        settings: ReadingSettings = ReadingSettings.Default,
     ) {
         val chapter =
             Chapter
@@ -97,7 +125,7 @@ class PageContentFitTest {
                 fontScale?.let { scale -> Density(systemDensity.density, scale) } ?: systemDensity
             CompositionLocalProvider(LocalDensity provides density) {
                 DTOXTheme {
-                    val styles = readingStyles()
+                    val styles = readingStyles(settings)
                     val textMeasurer = rememberTextMeasurer()
                     val measurer = ComposeBlockMeasurer(textMeasurer, styles, density)
                     pages = Paginator.paginate(chapter, viewport, measurer).getOrThrow()

@@ -1,20 +1,27 @@
 package dev.d1ito.dtox.ui.reader
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.max
 import dev.d1ito.dtox.domain.Block
+import dev.d1ito.dtox.domain.ReadingSettings
 import dev.d1ito.dtox.ui.theme.DTOXTheme
+import dev.d1ito.dtox.ui.theme.ReadingPalette
 
 /** Shown instead of a [Block.Separator], which has no text of its own. */
 const val SEPARATOR_GLYPHS = "·  ·  ·"
@@ -134,24 +141,56 @@ private fun TextStyle.forPagination(): TextStyle =
     )
 
 /**
- * @return reading styles for the current theme: Libron scale from Typography, colors from the
- *   palette, list gutter scaled with the body font size (and so with the system font scale).
+ * Reading styles for the current theme and [settings]: the body uses the chosen text size and
+ * line spacing, headings keep their scale relative to the body (H1 +40 %, H2 +20 %), colors come
+ * from the palette and the list gutter grows with the body size (and so with the font scale).
  */
 @Composable
 @ReadOnlyComposable
-fun readingStyles(): ReadingStyles {
+fun readingStyles(settings: ReadingSettings = ReadingSettings.Default): ReadingStyles =
+    readingStylesOf(settings, MaterialTheme.typography, DTOXTheme.palette, LocalDensity.current)
+
+/**
+ * The same as [readingStyles], kept across recompositions while its inputs do not change, so it
+ * can key work such as pagination.
+ */
+@Composable
+fun rememberReadingStyles(settings: ReadingSettings): ReadingStyles {
     val typography = MaterialTheme.typography
     val palette = DTOXTheme.palette
-    val bodyFontSize = with(LocalDensity.current) { typography.bodyLarge.fontSize.toDp() }
+    val density = LocalDensity.current
+    return remember(settings, typography, palette, density) {
+        readingStylesOf(settings, typography, palette, density)
+    }
+}
+
+private fun readingStylesOf(
+    settings: ReadingSettings,
+    typography: Typography,
+    palette: ReadingPalette,
+    density: Density,
+): ReadingStyles {
+    val baseSize = typography.bodyLarge.fontSize
+    val scaleToSettings = settings.textSizeSp / baseSize.value
+    val lineHeight = settings.lineSpacing.em
+    val sized = { style: TextStyle, color: Color ->
+        style.copy(
+            fontSize = style.fontSize * scaleToSettings,
+            lineHeight = lineHeight,
+            color = color,
+        )
+    }
+    val body = sized(typography.bodyLarge, palette.text)
+    val bodyFontSize = with(density) { body.fontSize.toDp() }
     return ReadingStyles(
         heading =
             mapOf(
-                Block.Heading.HIGHEST_LEVEL to typography.titleLarge.copy(color = palette.text),
-                SECOND_HEADING_LEVEL to typography.titleMedium.copy(color = palette.text),
-                Block.Heading.LOWEST_LEVEL to typography.titleSmall.copy(color = palette.text),
+                Block.Heading.HIGHEST_LEVEL to sized(typography.titleLarge, palette.text),
+                SECOND_HEADING_LEVEL to sized(typography.titleMedium, palette.text),
+                Block.Heading.LOWEST_LEVEL to sized(typography.titleSmall, palette.text),
             ),
-        body = typography.bodyLarge.copy(color = palette.text),
-        mutedBody = typography.bodyLarge.copy(color = palette.textMuted),
+        body = body,
+        mutedBody = sized(typography.bodyLarge, palette.textMuted),
         listMarkerGutter =
             max(
                 minimumListMarkerGutter,

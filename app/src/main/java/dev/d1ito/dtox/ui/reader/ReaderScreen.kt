@@ -39,6 +39,8 @@ import androidx.compose.ui.unit.min
 import dev.d1ito.dtox.R
 import dev.d1ito.dtox.domain.Anchor
 import dev.d1ito.dtox.domain.Chapter
+import dev.d1ito.dtox.domain.PageMargins
+import dev.d1ito.dtox.domain.ReadingSettings
 import dev.d1ito.dtox.pagination.Page
 import dev.d1ito.dtox.pagination.Paginator
 import dev.d1ito.dtox.pagination.Viewport
@@ -53,7 +55,6 @@ internal const val PAGE_TURN_MILLIS = 225
 
 private const val DEFAULT_ANIMATOR_SCALE = 1f
 
-private val pageHorizontalMargin = 24.dp
 private val pageVerticalMargin = 32.dp
 
 /** Keeps the reading column narrow on wide screens (docs/04-design.md: ≈ 55–70 characters). */
@@ -67,31 +68,49 @@ private val readingColumnMaxWidth = 600.dp
  * @param chapter chapter to read.
  * @param position where to open, inside [chapter], and who receives the page turns.
  * @param paginationDispatcher where pages are measured; never the main thread.
+ * @param settings text size, line spacing and margins; changing them repaginates and reopens
+ *   at the page holding [ReadingPosition.restoredAnchor].
  */
+@Suppress("LongParameterList") // Four inputs plus the conventional Compose modifier.
 @Composable
 fun ReaderScreen(
     chapter: Chapter,
     position: ReadingPosition,
     paginationDispatcher: CoroutineDispatcher,
     modifier: Modifier = Modifier,
+    settings: ReadingSettings = ReadingSettings.Default,
 ) {
+    val styles = rememberReadingStyles(settings)
     BoxWithConstraints(
-        modifier = modifier.readerPageArea(),
+        modifier = modifier.readerPageArea(horizontalMarginOf(settings.margins)),
         contentAlignment = Alignment.TopCenter,
     ) {
         val columnWidth = min(maxWidth, readingColumnMaxWidth)
         val pages =
             viewportOf(columnWidth)?.let { size ->
-                paginatedPages(chapter, size, paginationDispatcher).value?.pagesFor(chapter, size)
+                paginatedPages(chapter, size, styles, paginationDispatcher)
+                    .value
+                    ?.pagesFor(chapter, size, styles)
             }
         when {
             pages == null -> Unit // Still paginating: keep the empty page background.
             pages.isFailure -> ReaderMessage(stringResource(R.string.reader_chapter_unavailable))
             else ->
-                ChapterPager(PaginatedChapter(chapter, pages.getOrThrow(), columnWidth), position)
+                ChapterPager(
+                    PaginatedChapter(chapter, pages.getOrThrow(), columnWidth, styles),
+                    position,
+                )
         }
     }
 }
+
+/** Side margin of the page for each [PageMargins] choice. */
+private fun horizontalMarginOf(margins: PageMargins): Dp =
+    when (margins) {
+        PageMargins.NARROW -> 16.dp
+        PageMargins.NORMAL -> 24.dp
+        PageMargins.WIDE -> 40.dp
+    }
 
 /** The page area in pixels for a column of [columnWidth], or `null` if it is empty. */
 @Composable
@@ -102,17 +121,18 @@ private fun BoxWithConstraintsScope.viewportOf(columnWidth: Dp): Viewport? =
 
 /** Page background, room for system insets and the reading margins. */
 @Composable
-private fun Modifier.readerPageArea(): Modifier =
+private fun Modifier.readerPageArea(horizontalMargin: Dp): Modifier =
     fillMaxSize()
         .background(DTOXTheme.palette.background)
         .windowInsetsPadding(WindowInsets.safeDrawing)
-        .padding(horizontal = pageHorizontalMargin, vertical = pageVerticalMargin)
+        .padding(horizontal = horizontalMargin, vertical = pageVerticalMargin)
 
 /** A chapter with its pages for one column width. */
 private class PaginatedChapter(
     val chapter: Chapter,
     val pages: List<Page>,
     val columnWidth: Dp,
+    val styles: ReadingStyles,
 )
 
 /**
@@ -138,13 +158,18 @@ class ReadingPosition(
 private data class ChapterPagination(
     private val chapter: Chapter,
     private val viewport: Viewport,
+    private val styles: ReadingStyles,
     private val pages: Result<List<Page>>,
 ) {
-    /** @return the pages if they were computed for [current] and [currentViewport], else `null`. */
+    /** @return the pages if computed for this chapter, viewport and styles, else `null`. */
     fun pagesFor(
         current: Chapter,
         currentViewport: Viewport,
-    ): Result<List<Page>>? = pages.takeIf { chapter === current && viewport == currentViewport }
+        currentStyles: ReadingStyles,
+    ): Result<List<Page>>? =
+        pages.takeIf {
+            chapter === current && viewport == currentViewport && styles === currentStyles
+        }
 }
 
 /** Paginates [chapter] on [dispatcher]; `null` until the first result is ready. */
@@ -152,9 +177,9 @@ private data class ChapterPagination(
 private fun paginatedPages(
     chapter: Chapter,
     viewport: Viewport,
+    styles: ReadingStyles,
     dispatcher: CoroutineDispatcher,
 ): State<ChapterPagination?> {
-    val styles = readingStyles()
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
     return produceState<ChapterPagination?>(
@@ -167,7 +192,7 @@ private fun paginatedPages(
     ) {
         val measurer = ComposeBlockMeasurer(textMeasurer, styles, density)
         val pages = withContext(dispatcher) { Paginator.paginate(chapter, viewport, measurer) }
-        value = ChapterPagination(chapter, viewport, pages)
+        value = ChapterPagination(chapter, viewport, styles, pages)
     }
 }
 
@@ -211,7 +236,7 @@ private fun PageAt(
         PageContent(
             paginated.pages[pageIndex],
             paginated.chapter,
-            readingStyles(),
+            paginated.styles,
             Modifier.width(paginated.columnWidth),
         )
     }
