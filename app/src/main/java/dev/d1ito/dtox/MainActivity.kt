@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -23,6 +24,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import dev.d1ito.dtox.domain.ReadingSettings
+import dev.d1ito.dtox.domain.ReadingTheme
 import dev.d1ito.dtox.ui.library.LibraryScreen
 import dev.d1ito.dtox.ui.library.LibraryViewModel
 import dev.d1ito.dtox.ui.reader.ChapterList
@@ -36,6 +38,8 @@ import dev.d1ito.dtox.ui.reader.ReadingPosition
 import dev.d1ito.dtox.ui.settings.ReadingSettingsViewModel
 import dev.d1ito.dtox.ui.settings.SettingsContent
 import dev.d1ito.dtox.ui.theme.DTOXTheme
+import dev.d1ito.dtox.ui.theme.WindowMatchesPalette
+import dev.d1ito.dtox.ui.theme.readingPaletteFor
 import kotlinx.coroutines.CoroutineDispatcher
 
 /**
@@ -62,7 +66,15 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         hideSystemBars()
         setContent {
-            DTOXTheme {
+            val settings by settingsViewModel.settings.collectAsState()
+            // Until the settings are read, the system palette matches the launch window.
+            val palette =
+                readingPaletteFor(
+                    settings?.theme ?: ReadingTheme.SYSTEM,
+                    systemIsDark = isSystemInDarkTheme(),
+                )
+            WindowMatchesPalette(palette)
+            DTOXTheme(palette) {
                 App(
                     libraryViewModel,
                     readerViewModel,
