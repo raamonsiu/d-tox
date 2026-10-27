@@ -13,6 +13,8 @@ decisiones en [docs/07-decisions.md](docs/07-decisions.md). Si algo de aquí cho
 3. **Testea** antes de commitear (`./gradlew testDebugUnitTest`; los cambios de comportamiento llevan test).
 4. Nunca `--no-verify`, nunca push a `main`, nunca edites `VERSION` ni la versión del README (la sube CI).
 5. Solo commitea/pushea cuando el dev lo pida.
+6. Si el cambio se ve en pantalla, la PR lleva captura o GIF de lo implementado (`scripts/pr-media.sh`),
+   hecho en el emulador con contenido de ejemplo de dominio público, nunca datos personales.
 
 ## Tomar un issue (coordinación entre devs y agentes)
 

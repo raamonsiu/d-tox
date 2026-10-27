@@ -3,12 +3,14 @@ package dev.d1ito.dtox.ui.library
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.OpenableColumns
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,10 +19,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -65,6 +67,7 @@ private val minimumTouchTarget = 48.dp
 fun LibraryScreen(
     viewModel: LibraryViewModel,
     onOpenBook: (BookIdentifier) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     val contentResolver = LocalContext.current.contentResolver
@@ -78,6 +81,7 @@ fun LibraryScreen(
             onAddBook = { picker.launch(pickableMimeTypes) },
             onOpenBook = { entry -> onOpenBook(entry.bookIdentifier) },
             onRemoveBook = { entry -> viewModel.removeBook(entry.bookIdentifier) },
+            onOpenSettings = onOpenSettings,
         ),
     )
 }
@@ -88,11 +92,13 @@ fun LibraryScreen(
  * @property onAddBook opens the document picker.
  * @property onOpenBook opens the touched book.
  * @property onRemoveBook removes a book the user confirmed to remove.
+ * @property onOpenSettings opens the settings; `null` hides the button.
  */
 class LibraryActions(
     val onAddBook: () -> Unit,
     val onOpenBook: (LibraryEntry) -> Unit,
     val onRemoveBook: (LibraryEntry) -> Unit,
+    val onOpenSettings: (() -> Unit)? = null,
 )
 
 /**
@@ -116,7 +122,7 @@ fun LibraryContent(
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(screenMargin),
     ) {
-        LibraryHeader(state, actions.onAddBook)
+        LibraryHeader(state, actions)
         Spacer(Modifier.height(entrySpacing))
         if (state.books.isEmpty()) {
             MutedText(stringResource(R.string.library_empty))
@@ -126,7 +132,11 @@ fun LibraryContent(
     }
 }
 
-/** The book list, and the confirmation a long press on a book asks before removing it. */
+/**
+ * The book list. A long press on a book opens, right under it, a text confirmation before
+ * removing it: no dialog window, so nothing animates (only the page turn does, docs/04-design.md).
+ * Back or "Cancelar" closes it.
+ */
 @Composable
 private fun BookListWithRemoval(
     books: List<LibraryEntry>,
@@ -134,95 +144,108 @@ private fun BookListWithRemoval(
 ) {
     // The identifier text survives rotation and process death; the entry is looked up again.
     var pendingRemovalHex by rememberSaveable { mutableStateOf<String?>(null) }
-    BookList(books, actions.onOpenBook) { entry -> pendingRemovalHex = entry.bookIdentifier.hex }
-    books.firstOrNull { entry -> entry.bookIdentifier.hex == pendingRemovalHex }?.let { entry ->
-        RemoveBookDialog(
-            entry = entry,
-            onConfirm = {
-                pendingRemovalHex = null
-                actions.onRemoveBook(entry)
-            },
-            onDismiss = { pendingRemovalHex = null },
-        )
+    if (pendingRemovalHex != null) BackHandler { pendingRemovalHex = null }
+    val removeLabel = stringResource(R.string.library_remove_action)
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(entrySpacing)) {
+        items(books, key = { entry -> entry.bookIdentifier.value }) { entry ->
+            BookRow(
+                entry = entry,
+                removeLabel = removeLabel,
+                onOpen = { actions.onOpenBook(entry) },
+                onAskToRemove = { pendingRemovalHex = entry.bookIdentifier.hex },
+            )
+            if (entry.bookIdentifier.hex == pendingRemovalHex) {
+                RemoveConfirmation(
+                    entry = entry,
+                    onConfirm = {
+                        pendingRemovalHex = null
+                        actions.onRemoveBook(entry)
+                    },
+                    onCancel = { pendingRemovalHex = null },
+                )
+            }
+        }
     }
 }
 
-/** The title, "Añadir libro" (disabled while importing) and the last message, if any. */
+/** The title, "Añadir libro" (disabled while importing), "Ajustes" and the last message. */
 @Composable
 private fun LibraryHeader(
     state: LibraryUiState,
-    onAddBook: () -> Unit,
+    actions: LibraryActions,
 ) {
     Text(
         text = stringResource(R.string.library_title),
         style = MaterialTheme.typography.titleLarge,
     )
-    TextButton(onClick = onAddBook, enabled = !state.isImporting) {
+    TextButton(onClick = actions.onAddBook, enabled = !state.isImporting) {
         val label = if (state.isImporting) R.string.library_importing else R.string.library_add
         Text(stringResource(label))
+    }
+    actions.onOpenSettings?.let { open ->
+        TextButton(onClick = open) { Text(stringResource(R.string.library_settings)) }
     }
     state.message?.let { message -> MutedText(stringResource(message.textResource())) }
 }
 
 /** Text confirmation before removing [entry]; it says the original file stays untouched. */
 @Composable
-private fun RemoveBookDialog(
+private fun RemoveConfirmation(
     entry: LibraryEntry,
     onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
+    onCancel: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = DTOXTheme.palette.background,
-        text = {
-            Text(
-                text = stringResource(R.string.library_remove_question, entry.title),
-                color = DTOXTheme.palette.text,
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(
-                    stringResource(R.string.library_remove_confirm),
-                    color = DTOXTheme.palette.text,
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.library_remove_cancel), color = DTOXTheme.palette.text)
-            }
-        },
-    )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.library_remove_question, entry.title),
+            style = MaterialTheme.typography.bodyMedium,
+            color = DTOXTheme.palette.text,
+        )
+        Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+            ConfirmationButton(R.string.library_remove_cancel, onCancel)
+            ConfirmationButton(R.string.library_remove_confirm, onConfirm)
+        }
+        HorizontalDivider(color = DTOXTheme.palette.divider)
+    }
 }
 
 @Composable
-private fun BookList(
-    books: List<LibraryEntry>,
-    onOpenBook: (LibraryEntry) -> Unit,
-    onAskToRemove: (LibraryEntry) -> Unit,
+private fun ConfirmationButton(
+    label: Int,
+    onClick: () -> Unit,
 ) {
-    val removeLabel = stringResource(R.string.library_remove_action)
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(entrySpacing)) {
-        items(books, key = { entry -> entry.bookIdentifier.value }) { entry ->
-            Column(
-                modifier =
-                    Modifier.fillMaxWidth().heightIn(min = minimumTouchTarget).combinedClickable(
-                        onLongClickLabel = removeLabel,
-                        onLongClick = { onAskToRemove(entry) },
-                        onClick = { onOpenBook(entry) },
-                    ),
-            ) {
-                Text(
-                    text = entry.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = DTOXTheme.palette.text,
-                )
-                entry.author?.let { author -> MutedText(author) }
-                Spacer(Modifier.height(entrySpacing))
-                HorizontalDivider(color = DTOXTheme.palette.divider)
-            }
-        }
+    TextButton(
+        onClick = onClick,
+        modifier = Modifier.sizeIn(minWidth = minimumTouchTarget, minHeight = minimumTouchTarget),
+    ) {
+        Text(stringResource(label), color = DTOXTheme.palette.text)
+    }
+}
+
+/** One book: tap to open it, long press to ask about removing it. */
+@Composable
+private fun BookRow(
+    entry: LibraryEntry,
+    removeLabel: String,
+    onOpen: () -> Unit,
+    onAskToRemove: () -> Unit,
+) {
+    Column(
+        modifier =
+            Modifier.fillMaxWidth().heightIn(min = minimumTouchTarget).combinedClickable(
+                onLongClickLabel = removeLabel,
+                onLongClick = onAskToRemove,
+                onClick = onOpen,
+            ),
+    ) {
+        Text(
+            text = entry.title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = DTOXTheme.palette.text,
+        )
+        entry.author?.let { author -> MutedText(author) }
+        Spacer(Modifier.height(entrySpacing))
+        HorizontalDivider(color = DTOXTheme.palette.divider)
     }
 }
 

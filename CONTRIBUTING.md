@@ -10,7 +10,9 @@
 4. **Implementa** en pequeño: pocas líneas, un solo propósito. Si crece, abre otro issue.
 5. **Testea**: `make check` (tests + lint, lo mismo que CI) y prueba a mano con `make run`.
 6. **Commit** con el slug como primera línea; los hooks validan formato, lint y suben la versión.
-7. **PR a `main`** con la plantilla. Título = slug.
+7. **PR a `main`** con la plantilla. Título = slug. Si cambia algo visible, adjunta captura o GIF:
+   `scripts/pr-media.sh screenshot`/`record-start`/`record-stop` y `publish` (sube a la rama `pr-media`
+   y te da el Markdown). Grabar requiere `ffmpeg`.
 
 Con Claude Code, las skills de `.claude/skills/` encadenan estos pasos: `/take-issue [número]` (2–3),
 `/check` (5) y `/open-pr` (7). Las reglas siguen en [CLAUDE.md](CLAUDE.md); las skills solo las referencian.

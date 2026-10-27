@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.d1ito.dtox.R
@@ -105,6 +106,23 @@ class LibraryContentTest {
     }
 
     @Test
+    fun back_closesTheConfirmation_withoutRemoving() {
+        val removed = mutableListOf<String>()
+        val niebla = entry("fedcba9876543210fedcba9876543210", "Niebla", author = null)
+        show(LibraryUiState(books = listOf(niebla)), onRemoveBook = { entry ->
+            removed +=
+                entry.title
+        })
+        composeRule.onNodeWithText("Niebla").performTouchInput { longClick() }
+        composeRule.onNodeWithText(text(R.string.library_remove_confirm)).assertIsDisplayed()
+
+        Espresso.pressBack()
+
+        composeRule.onNodeWithText(text(R.string.library_remove_confirm)).assertDoesNotExist()
+        assertEquals(emptyList<String>(), removed)
+    }
+
+    @Test
     fun theRemoveAction_isNamedForTalkBack_andRowsAreLargeEnoughToTouch() {
         show(
             LibraryUiState(
@@ -121,6 +139,35 @@ class LibraryContentTest {
                         text(R.string.library_remove_action)
                 },
             )
+    }
+
+    @Test
+    fun theSettingsButton_appearsOnlyWithAnAction_andOpensTheSettings() {
+        var opened = 0
+        composeRule.setContent {
+            DTOXTheme {
+                LibraryContent(
+                    LibraryUiState(),
+                    LibraryActions(
+                        onAddBook = {},
+                        onOpenBook = {},
+                        onRemoveBook = {},
+                        onOpenSettings = { opened++ },
+                    ),
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(text(R.string.library_settings)).performClick()
+
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun withoutASettingsAction_thereIsNoSettingsButton() {
+        show(LibraryUiState())
+
+        composeRule.onNodeWithText(text(R.string.library_settings)).assertDoesNotExist()
     }
 
     @Test
