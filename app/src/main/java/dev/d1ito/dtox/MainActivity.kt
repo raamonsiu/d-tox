@@ -15,6 +15,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -23,6 +24,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import dev.d1ito.dtox.ui.library.LibraryScreen
 import dev.d1ito.dtox.ui.library.LibraryViewModel
+import dev.d1ito.dtox.ui.reader.ChapterList
 import dev.d1ito.dtox.ui.reader.ReaderControlActions
 import dev.d1ito.dtox.ui.reader.ReaderControlsBar
 import dev.d1ito.dtox.ui.reader.ReaderMessage
@@ -103,12 +105,36 @@ private fun Reader(
     }
 }
 
-/** The pages, and the controls bar a tap in the center shows; turning a page hides it. */
+/** The pages with their controls bar, or the chapter list the bar opens; back closes the list. */
 @Composable
 private fun ReadingWithControls(
     state: ReaderUiState.Reading,
     viewModel: ReaderViewModel,
     paginationDispatcher: CoroutineDispatcher,
+) {
+    var chaptersVisible by rememberSaveable { mutableStateOf(false) }
+    if (chaptersVisible) {
+        BackHandler { chaptersVisible = false }
+        ChapterList(
+            chapters = state.book.chapters,
+            currentIndex = state.position.chapter,
+            onSelect = { index ->
+                chaptersVisible = false
+                viewModel.onChapterSelected(index)
+            },
+        )
+    } else {
+        PagesWithControls(state, viewModel, paginationDispatcher) { chaptersVisible = true }
+    }
+}
+
+/** The pages, and the controls bar a tap in the center shows; turning a page hides it. */
+@Composable
+private fun PagesWithControls(
+    state: ReaderUiState.Reading,
+    viewModel: ReaderViewModel,
+    paginationDispatcher: CoroutineDispatcher,
+    onOpenChapters: () -> Unit,
 ) {
     var controlsVisible by remember { mutableStateOf(false) }
     LaunchedEffect(state.position) { controlsVisible = false }
@@ -127,7 +153,7 @@ private fun ReadingWithControls(
         )
         ReaderControlsBar(
             visible = controlsVisible,
-            actions = ReaderControlActions(onBack = viewModel::close),
+            actions = ReaderControlActions(onBack = viewModel::close, onChapters = onOpenChapters),
             onHide = { controlsVisible = false },
         )
     }

@@ -146,6 +146,13 @@ class ReaderViewModel(
         }
     }
 
+    /** Opens the first page of chapter [index], chosen in the chapter list; ignored if invalid. */
+    fun onChapterSelected(index: Int) {
+        val reading = mutableState.value as? ReaderUiState.Reading ?: return
+        if (index !in reading.book.chapters.indices) return
+        onPageSettled(chapterStart(index))
+    }
+
     /** Turning past the last page: opens the first page of the next chapter, if there is one. */
     fun onNextChapter() {
         val reading = mutableState.value as? ReaderUiState.Reading ?: return
