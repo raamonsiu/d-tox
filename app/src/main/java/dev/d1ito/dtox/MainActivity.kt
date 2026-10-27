@@ -118,17 +118,26 @@ private fun Reader(
         ReaderUiState.Closed, ReaderUiState.Loading -> EmptyScreen()
         ReaderUiState.Unavailable -> ReaderMessage(stringResource(R.string.reader_book_unavailable))
         is ReaderUiState.Reading ->
-            ReadingWithControls(state, viewModel, settings, paginationDispatcher)
+            ReadingWithControls(state, viewModel, PageRendering(settings, paginationDispatcher))
     }
 }
+
+/**
+ * How pages are laid out: the reading settings and where pagination runs.
+ *
+ * @property paginationDispatcher where pages are measured; never the main thread.
+ */
+private class PageRendering(
+    val settings: ReadingSettings,
+    val paginationDispatcher: CoroutineDispatcher,
+)
 
 /** The pages with their controls bar, or the chapter list the bar opens; back closes the list. */
 @Composable
 private fun ReadingWithControls(
     state: ReaderUiState.Reading,
     viewModel: ReaderViewModel,
-    settings: ReadingSettings,
-    paginationDispatcher: CoroutineDispatcher,
+    rendering: PageRendering,
 ) {
     var chaptersVisible by rememberSaveable { mutableStateOf(false) }
     if (chaptersVisible) {
@@ -142,7 +151,7 @@ private fun ReadingWithControls(
             },
         )
     } else {
-        PagesWithControls(state, viewModel, paginationDispatcher) { chaptersVisible = true }
+        PagesWithControls(state, viewModel, rendering) { chaptersVisible = true }
     }
 }
 
@@ -151,7 +160,7 @@ private fun ReadingWithControls(
 private fun PagesWithControls(
     state: ReaderUiState.Reading,
     viewModel: ReaderViewModel,
-    paginationDispatcher: CoroutineDispatcher,
+    rendering: PageRendering,
     onOpenChapters: () -> Unit,
 ) {
     var controlsVisible by remember { mutableStateOf(false) }
@@ -167,8 +176,8 @@ private fun PagesWithControls(
                     onPreviousChapter = viewModel::onPreviousChapter,
                     onCenterTap = { controlsVisible = !controlsVisible },
                 ),
-            paginationDispatcher = paginationDispatcher,
-            settings = settings,
+            paginationDispatcher = rendering.paginationDispatcher,
+            settings = rendering.settings,
         )
         ReaderControlsBar(
             visible = controlsVisible,
