@@ -22,7 +22,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import dev.d1ito.dtox.data.storage.ReadingSettingsStore
 import dev.d1ito.dtox.domain.ReadingSettings
 import dev.d1ito.dtox.ui.library.LibraryScreen
 import dev.d1ito.dtox.ui.library.LibraryViewModel
@@ -34,6 +33,8 @@ import dev.d1ito.dtox.ui.reader.ReaderScreen
 import dev.d1ito.dtox.ui.reader.ReaderUiState
 import dev.d1ito.dtox.ui.reader.ReaderViewModel
 import dev.d1ito.dtox.ui.reader.ReadingPosition
+import dev.d1ito.dtox.ui.settings.ReadingSettingsViewModel
+import dev.d1ito.dtox.ui.settings.SettingsContent
 import dev.d1ito.dtox.ui.theme.DTOXTheme
 import kotlinx.coroutines.CoroutineDispatcher
 
@@ -52,6 +53,10 @@ class MainActivity : ComponentActivity() {
         ReaderViewModel.factory(container)
     }
 
+    private val settingsViewModel: ReadingSettingsViewModel by viewModels {
+        ReadingSettingsViewModel.factory(container)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -61,7 +66,7 @@ class MainActivity : ComponentActivity() {
                 App(
                     libraryViewModel,
                     readerViewModel,
-                    container.readingSettingsStore,
+                    settingsViewModel,
                     container.dispatchers.computation,
                 )
             }
@@ -83,42 +88,79 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** Library while no book is open, the reader otherwise. */
+/**
+ * Library while no book is open, the reader otherwise; the settings screen over either of them.
+ * Back closes the settings first, then the book.
+ */
 @Composable
 private fun App(
     libraryViewModel: LibraryViewModel,
     readerViewModel: ReaderViewModel,
-    settingsStore: ReadingSettingsStore,
+    settingsViewModel: ReadingSettingsViewModel,
     paginationDispatcher: CoroutineDispatcher,
 ) {
     val readerState by readerViewModel.state.collectAsState()
     // null until read from disk: paginating with the defaults first would paginate twice.
-    val settings by settingsStore.settings.collectAsState(initial = null)
-    if (readerState == ReaderUiState.Closed) {
-        LibraryScreen(libraryViewModel, onOpenBook = readerViewModel::open)
-    } else {
-        BackHandler(onBack = readerViewModel::close)
-        val loadedSettings = settings
-        if (loadedSettings == null) {
-            EmptyScreen()
-        } else {
-            Reader(readerState, readerViewModel, loadedSettings, paginationDispatcher)
+    val settings by settingsViewModel.settings.collectAsState()
+    var settingsVisible by rememberSaveable { mutableStateOf(false) }
+    val loadedSettings = settings
+    when {
+        settingsVisible && loadedSettings != null ->
+            Settings(settingsViewModel, loadedSettings) { settingsVisible = false }
+        readerState == ReaderUiState.Closed ->
+            LibraryScreen(
+                libraryViewModel,
+                onOpenBook = readerViewModel::open,
+                onOpenSettings = { settingsVisible = true },
+            )
+        loadedSettings == null -> EmptyScreen()
+        else -> {
+            BackHandler(onBack = readerViewModel::close)
+            val reading =
+                ReadingSetup(loadedSettings, paginationDispatcher) {
+                    settingsVisible =
+                        true
+                }
+            Reader(readerState, readerViewModel, reading)
         }
     }
 }
+
+/** The settings screen; back and its own button close it. */
+@Composable
+private fun Settings(
+    viewModel: ReadingSettingsViewModel,
+    settings: ReadingSettings,
+    onClose: () -> Unit,
+) {
+    BackHandler(onBack = onClose)
+    val saveFailed by viewModel.saveFailed.collectAsState()
+    SettingsContent(settings, saveFailed, onChange = viewModel::change, onBack = onClose)
+}
+
+/**
+ * What the reader needs besides its state.
+ *
+ * @property settings current reading settings.
+ * @property paginationDispatcher where pages are measured; never the main thread.
+ * @property onOpenSettings opens the settings screen from the controls bar.
+ */
+private class ReadingSetup(
+    val settings: ReadingSettings,
+    val paginationDispatcher: CoroutineDispatcher,
+    val onOpenSettings: () -> Unit,
+)
 
 @Composable
 private fun Reader(
     state: ReaderUiState,
     viewModel: ReaderViewModel,
-    settings: ReadingSettings,
-    paginationDispatcher: CoroutineDispatcher,
+    setup: ReadingSetup,
 ) {
     when (state) {
         ReaderUiState.Closed, ReaderUiState.Loading -> EmptyScreen()
         ReaderUiState.Unavailable -> ReaderMessage(stringResource(R.string.reader_book_unavailable))
-        is ReaderUiState.Reading ->
-            ReadingWithControls(state, viewModel, settings, paginationDispatcher)
+        is ReaderUiState.Reading -> ReadingWithControls(state, viewModel, setup)
     }
 }
 
@@ -127,8 +169,7 @@ private fun Reader(
 private fun ReadingWithControls(
     state: ReaderUiState.Reading,
     viewModel: ReaderViewModel,
-    settings: ReadingSettings,
-    paginationDispatcher: CoroutineDispatcher,
+    setup: ReadingSetup,
 ) {
     var chaptersVisible by rememberSaveable { mutableStateOf(false) }
     if (chaptersVisible) {
@@ -142,7 +183,7 @@ private fun ReadingWithControls(
             },
         )
     } else {
-        PagesWithControls(state, viewModel, paginationDispatcher) { chaptersVisible = true }
+        PagesWithControls(state, viewModel, setup) { chaptersVisible = true }
     }
 }
 
@@ -151,7 +192,7 @@ private fun ReadingWithControls(
 private fun PagesWithControls(
     state: ReaderUiState.Reading,
     viewModel: ReaderViewModel,
-    paginationDispatcher: CoroutineDispatcher,
+    setup: ReadingSetup,
     onOpenChapters: () -> Unit,
 ) {
     var controlsVisible by remember { mutableStateOf(false) }
@@ -167,12 +208,17 @@ private fun PagesWithControls(
                     onPreviousChapter = viewModel::onPreviousChapter,
                     onCenterTap = { controlsVisible = !controlsVisible },
                 ),
-            paginationDispatcher = paginationDispatcher,
-            settings = settings,
+            paginationDispatcher = setup.paginationDispatcher,
+            settings = setup.settings,
         )
         ReaderControlsBar(
             visible = controlsVisible,
-            actions = ReaderControlActions(onBack = viewModel::close, onChapters = onOpenChapters),
+            actions =
+                ReaderControlActions(
+                    onBack = viewModel::close,
+                    onChapters = onOpenChapters,
+                    onTextSettings = setup.onOpenSettings,
+                ),
             onHide = { controlsVisible = false },
         )
     }

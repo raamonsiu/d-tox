@@ -57,6 +57,7 @@ private val entrySpacing = 16.dp
 fun LibraryScreen(
     viewModel: LibraryViewModel,
     onOpenBook: (BookIdentifier) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     val contentResolver = LocalContext.current.contentResolver
@@ -68,6 +69,7 @@ fun LibraryScreen(
         state,
         onAddBook = { picker.launch(pickableMimeTypes) },
         onOpenBook = { entry -> onOpenBook(entry.bookIdentifier) },
+        onOpenSettings = onOpenSettings,
     )
 }
 
@@ -77,13 +79,16 @@ fun LibraryScreen(
  * @param state what to show.
  * @param onAddBook opens the document picker.
  * @param onOpenBook opens the touched book.
+ * @param onOpenSettings opens the settings; `null` hides the button.
  */
+@Suppress("LongParameterList") // Four inputs plus the conventional Compose modifier.
 @Composable
 fun LibraryContent(
     state: LibraryUiState,
     onAddBook: () -> Unit,
     onOpenBook: (LibraryEntry) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenSettings: (() -> Unit)? = null,
 ) {
     Column(
         modifier =
@@ -100,6 +105,9 @@ fun LibraryContent(
         TextButton(onClick = onAddBook, enabled = !state.isImporting) {
             val label = if (state.isImporting) R.string.library_importing else R.string.library_add
             Text(stringResource(label))
+        }
+        onOpenSettings?.let { open ->
+            TextButton(onClick = open) { Text(stringResource(R.string.library_settings)) }
         }
         state.message?.let { message -> MutedText(stringResource(message.textResource())) }
         Spacer(Modifier.height(entrySpacing))
