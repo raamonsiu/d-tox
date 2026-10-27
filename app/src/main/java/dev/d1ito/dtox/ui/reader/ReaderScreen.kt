@@ -1,10 +1,5 @@
 package dev.d1ito.dtox.ui.reader
 
-import android.provider.Settings
-import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -29,7 +24,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -53,8 +47,6 @@ import kotlinx.coroutines.withContext
 /** Page turn duration from docs/04-design.md (~200–250 ms). */
 internal const val PAGE_TURN_MILLIS = 225
 
-private const val DEFAULT_ANIMATOR_SCALE = 1f
-
 private val pageVerticalMargin = 32.dp
 
 /** Keeps the reading column narrow on wide screens (docs/04-design.md: ≈ 55–70 characters). */
@@ -68,8 +60,8 @@ private val readingColumnMaxWidth = 600.dp
  * @param chapter chapter to read.
  * @param position where to open, inside [chapter], and who receives the page turns.
  * @param paginationDispatcher where pages are measured; never the main thread.
- * @param settings text size, line spacing and margins; changing them repaginates and reopens
- *   at the page holding [ReadingPosition.restoredAnchor].
+ * @param settings text size, line spacing and margins (changing them repaginates and reopens
+ *   at the page holding [ReadingPosition.restoredAnchor]) and whether page turns slide.
  */
 @Suppress("LongParameterList") // Four inputs plus the conventional Compose modifier.
 @Composable
@@ -99,6 +91,7 @@ fun ReaderScreen(
                 ChapterPager(
                     PaginatedChapter(chapter, pages.getOrThrow(), columnWidth, styles),
                     position,
+                    settings.pageAnimation,
                 )
         }
     }
@@ -200,6 +193,7 @@ private fun paginatedPages(
 private fun ChapterPager(
     paginated: PaginatedChapter,
     position: ReadingPosition,
+    pageAnimationSetting: Boolean,
 ) {
     val pages = paginated.pages
     // New pages (rotation, font change) need a new pager opened at the anchor's page. The pager
@@ -207,7 +201,7 @@ private fun ChapterPager(
     key(pages) {
         val initialPage = position.restoredAnchor?.let { anchor -> pageIndexOf(pages, anchor) } ?: 0
         val pagerState = remember { PagerState(currentPage = initialPage) { pages.size } }
-        val animationsEnabled = rememberAnimationsEnabled()
+        val animationsEnabled = rememberPageTurnAnimates(pageAnimationSetting)
         ReportSettledPages(pagerState, pages, position.onPageSettled)
         HorizontalPager(
             state = pagerState,
@@ -255,24 +249,6 @@ private fun ReportSettledPages(
         snapshotFlow { pagerState.settledPage }.drop(1).collect { page ->
             onPageSettled(pages[page].startAnchor)
         }
-    }
-}
-
-/** The desktop-like slide of docs/04-design.md, or an instant change without animations. */
-private fun pageTurnSpec(animationsEnabled: Boolean): AnimationSpec<Float> =
-    if (animationsEnabled) tween(PAGE_TURN_MILLIS, easing = FastOutSlowInEasing) else snap()
-
-/** `false` when the system "Remove animations" setting sets the animator scale to 0. */
-@Composable
-private fun rememberAnimationsEnabled(): Boolean {
-    val contentResolver = LocalContext.current.contentResolver
-    return remember(contentResolver) {
-        Settings.Global.getFloat(
-            contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            DEFAULT_ANIMATOR_SCALE,
-        ) >
-            0f
     }
 }
 
