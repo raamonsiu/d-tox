@@ -23,6 +23,9 @@ interface ParsedBookCache {
 
     /** @return success once [book] is stored, or an [AtomicWriteError]. */
     suspend fun write(book: Book): Result<Unit>
+
+    /** Forgets the cached [bookIdentifier]; succeeds when there was nothing cached. */
+    suspend fun remove(bookIdentifier: BookIdentifier): Result<Unit>
 }
 
 /**
@@ -59,6 +62,16 @@ class FileParsedBookCache(
             cacheFileOf(book.identifier),
             ParsedBookFormat.encode(book).toByteArray(Charsets.UTF_8),
         )
+
+    override suspend fun remove(bookIdentifier: BookIdentifier): Result<Unit> =
+        withContext(ioDispatcher) {
+            val cacheFile = cacheFileOf(bookIdentifier)
+            if (!cacheFile.exists() || cacheFile.delete()) {
+                Result.success(Unit)
+            } else {
+                Result.failure(IOException("Cannot delete $cacheFile"))
+            }
+        }
 
     private fun cacheFileOf(bookIdentifier: BookIdentifier): File =
         File(cacheDirectory, bookIdentifier.hex + CACHE_EXTENSION)

@@ -62,6 +62,7 @@ El texto corriente **no destaca**: color `text` sobre `background`, sin negritas
 - Lista de texto: título, autor, y progreso muy tenue (p. ej. `31 %`).
 - Orden: último leído primero. Acción "Añadir libro" como texto, no FAB colorido.
 - Estado vacío: una frase y la acción de importar.
+- Pulsación larga en un libro → confirmación de texto bajo él, sin ventana ni animación, para quitarlo de la biblioteca (el archivo original no se toca y el progreso se conserva); "Cancelar" o atrás la cierran. TalkBack la anuncia como acción "Quitar de la biblioteca".
 
 ### Lector
 

@@ -13,6 +13,7 @@ import dev.d1ito.dtox.data.storage.FileBookDataStore
 import dev.d1ito.dtox.data.storage.FileLibraryIndex
 import dev.d1ito.dtox.data.storage.FileParsedBookCache
 import dev.d1ito.dtox.data.storage.FileReadingSettingsStore
+import dev.d1ito.dtox.data.storage.LibraryBookRemover
 import dev.d1ito.dtox.data.storage.LibraryIndex
 import dev.d1ito.dtox.data.storage.ParsedBookCache
 import dev.d1ito.dtox.data.storage.ReadingSettingsStore
@@ -59,6 +60,7 @@ interface AppContainer {
     val parsedBookCache: ParsedBookCache
     val libraryBookLoader: LibraryBookLoader
     val readingSettingsStore: ReadingSettingsStore
+    val libraryBookRemover: LibraryBookRemover
 }
 
 /**
@@ -128,5 +130,9 @@ class DefaultAppContainer(
 
     override val readingSettingsStore: ReadingSettingsStore by lazy {
         FileReadingSettingsStore(File(filesDirectory, "settings.json"), fileWriter, dispatchers.io)
+    }
+
+    override val libraryBookRemover: LibraryBookRemover by lazy {
+        LibraryBookRemover(libraryDirectory, parsedBookCache, libraryIndex, dispatchers.io)
     }
 }
