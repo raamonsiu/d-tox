@@ -54,7 +54,7 @@ Ratio WCAG 2 (luminancia relativa sRGB). AA ≥ 4.5:1 y AAA ≥ 7:1 para texto n
 | ------------------------------- | ------------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------- |
 | Lectura principal (por defecto) | **Libron** (revisión de Readerly, optimizada para lectura digital) | SIL OFL  | Verificar el archivo `LICENSE` del repo y respetar _Reserved Font Name_ si lo hubiera |
 | Accesibilidad                   | **OpenDyslexic**                                                   | SIL OFL  | Opción seleccionable                                                                  |
-| Monoespaciada                   | **IBM Plex Mono** (propuesta; alternativa JetBrains Mono)          | SIL OFL  | Opción seleccionable                                                                  |
+| Monoespaciada                   | **IBM Plex Mono** 2.5.0 (D-38)                                     | SIL OFL  | Opción seleccionable; _Reserved Font Name_ "Plex"                                     |
 | Interfaz (menús, ajustes)       | La misma fuente de lectura elegida                                 |          | Una sola familia en toda la app                                                       |
 
 - Tamaño de texto: 14–28 sp, por defecto 18 sp; interlineado 1.5–1.7; alineación a la izquierda (sin justificar, para evitar "ríos" y espacios irregulares).
