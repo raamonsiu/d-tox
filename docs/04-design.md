@@ -13,19 +13,40 @@ Objetivo: **mínimo estímulo visual**. Si un elemento no ayuda a leer, no está
 
 ## Temas
 
-Valores **propuestos**; validar contraste AA/AAA con herramienta antes de fijarlos.
+Valores **validados** (contraste WCAG 2, #118); son los de `ui/theme/Color.kt`.
 
 | Token        | Papel                 | Sepia     | Noche     |
 | ------------ | --------------------- | --------- | --------- |
 | `background` | `#F7F5EF`             | `#F1E9D2` | `#0F0F0E` |
 | `text`       | `#1C1C1A`             | `#2B261B` | `#D9D6CC` |
-| `textMuted`  | `#6B6A64`             | `#6E6550` | `#8E8B81` |
+| `textMuted`  | `#676661`             | `#635B48` | `#96948A` |
 | `divider`    | `#DEDBD2`             | `#D6CCB0` | `#2A2926` |
 | `highlight`  | `#E9E4D2` (sombreado) | `#E0D4AE` | `#2E2D27` |
 
 - "Blanco" puro y "negro" puro se evitan para reducir el deslumbramiento; el tema noche permite probar `#000000` como opción OLED.
 - Todos los temas usan la misma estructura; solo cambian los valores.
 - Por defecto: seguir el modo claro/oscuro del sistema (papel/noche), con elección manual.
+
+### Contraste medido
+
+Ratio WCAG 2 (luminancia relativa sRGB). AA ≥ 4.5:1 y AAA ≥ 7:1 para texto normal.
+
+| Par (primer plano / fondo) | Papel | Sepia | Noche | Estado                       |
+| -------------------------- | ----- | ----- | ----- | ---------------------------- |
+| `text` / `background`      | 15.66 | 12.41 | 13.19 | AAA                          |
+| `text` / `highlight`       | 13.40 | 10.17 | 9.50  | AAA                          |
+| `textMuted` / `background` | 5.28  | 5.55  | 6.30  | AA                           |
+| `textMuted` / `highlight`  | 4.52  | 4.55  | 4.54  | AA                           |
+| `divider` / `background`   | 1.27  | 1.32  | 1.32  | Decorativo (sin texto)       |
+| `highlight` / `background` | 1.17  | 1.22  | 1.39  | Decorativo (sombreado sutil) |
+
+- `textMuted` se oscureció (claros) o aclaró (noche) lo mínimo para llegar a 4.5:1 también sobre
+  `highlight` (antes: `#6B6A64` 4.26, `#6E6550` 3.90, `#8E8B81` 4.05).
+- `divider` y `highlight` no llevan texto propio: quedan por debajo de 3:1 a propósito, para no
+  añadir estímulo; el texto sobre `highlight` sí cumple.
+- `ReadingPaletteContrastTest` exige estos mínimos en todos los temas: `text` AAA y `textMuted` AA,
+  sobre `background` y sobre `highlight`.
+- Con fondo OLED `#000000` en noche, los ratios sobre el fondo suben (`text` 14.44, `textMuted` 6.90).
 
 ## Tipografía
 
