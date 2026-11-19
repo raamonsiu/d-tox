@@ -61,7 +61,8 @@ private val readingColumnMaxWidth = 600.dp
  * @param position where to open, inside [chapter], and who receives the page turns.
  * @param paginationDispatcher where pages are measured; never the main thread.
  * @param settings text size, line spacing and margins (changing them repaginates and reopens
- *   at the page holding [ReadingPosition.restoredAnchor]) and whether page turns slide.
+ *   at the page holding [ReadingPosition.restoredAnchor]), whether page turns slide and whether
+ *   the progress indicator shows.
  */
 @Suppress("LongParameterList") // Four inputs plus the conventional Compose modifier.
 @Composable
@@ -92,6 +93,7 @@ fun ReaderScreen(
                     PaginatedChapter(chapter, pages.getOrThrow(), columnWidth, styles),
                     position,
                     settings.pageAnimation,
+                    settings.progressIndicator,
                 )
         }
     }
@@ -194,6 +196,7 @@ private fun ChapterPager(
     paginated: PaginatedChapter,
     position: ReadingPosition,
     pageAnimationSetting: Boolean,
+    progressIndicatorShown: Boolean,
 ) {
     val pages = paginated.pages
     // New pages (rotation, font change) need a new pager opened at the anchor's page. The pager
@@ -217,6 +220,7 @@ private fun ChapterPager(
                     position,
                 ),
         ) { pageIndex -> PageAt(paginated, pageIndex) }
+        if (progressIndicatorShown) ChapterPageIndicator(pagerState, pageVerticalMargin)
     }
 }
 
