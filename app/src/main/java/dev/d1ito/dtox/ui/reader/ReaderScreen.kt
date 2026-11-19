@@ -32,17 +32,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import dev.d1ito.dtox.R
 import dev.d1ito.dtox.domain.Anchor
+import dev.d1ito.dtox.domain.Book
 import dev.d1ito.dtox.domain.Chapter
 import dev.d1ito.dtox.domain.PageMargins
 import dev.d1ito.dtox.domain.ReadingSettings
+import dev.d1ito.dtox.pagination.CachingPaginator
 import dev.d1ito.dtox.pagination.Page
-import dev.d1ito.dtox.pagination.Paginator
+import dev.d1ito.dtox.pagination.PageLayout
 import dev.d1ito.dtox.pagination.Viewport
 import dev.d1ito.dtox.pagination.pageIndexOf
 import dev.d1ito.dtox.ui.theme.DTOXTheme
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.withContext
 
 /** Page turn duration from docs/04-design.md (~200–250 ms). */
 internal const val PAGE_TURN_MILLIS = 225
@@ -58,13 +59,15 @@ private val readingColumnMaxWidth = 600.dp
  * so whoever owns the position keeps it across rotation and new paginations.
  *
  * @param chapter chapter to read.
+ * @param book the book [chapter] belongs to; with it, pages are cached and the chapters next to
+ *   [chapter] are paginated ahead, so changing chapter does not wait.
  * @param position where to open, inside [chapter], and who receives the page turns.
  * @param paginationDispatcher where pages are measured; never the main thread.
  * @param settings text size, line spacing and margins (changing them repaginates and reopens
  *   at the page holding [ReadingPosition.restoredAnchor]), whether page turns slide and whether
  *   the progress indicator shows.
  */
-@Suppress("LongParameterList") // Four inputs plus the conventional Compose modifier.
+@Suppress("LongParameterList") // Five inputs plus the conventional Compose modifier.
 @Composable
 fun ReaderScreen(
     chapter: Chapter,
@@ -72,8 +75,10 @@ fun ReaderScreen(
     paginationDispatcher: CoroutineDispatcher,
     modifier: Modifier = Modifier,
     settings: ReadingSettings = ReadingSettings.Default,
+    book: Book? = null,
 ) {
     val styles = rememberReadingStyles(settings)
+    val paginator = remember(paginationDispatcher) { CachingPaginator(paginationDispatcher) }
     BoxWithConstraints(
         modifier = modifier.readerPageArea(horizontalMarginOf(settings.margins)),
         contentAlignment = Alignment.TopCenter,
@@ -81,7 +86,8 @@ fun ReaderScreen(
         val columnWidth = min(maxWidth, readingColumnMaxWidth)
         val pages =
             viewportOf(columnWidth)?.let { size ->
-                paginatedPages(chapter, size, styles, paginationDispatcher)
+                paginator
+                    .paginatedPages(chapter, book, size, styles)
                     .value
                     ?.pagesFor(chapter, size, styles)
             }
@@ -167,27 +173,32 @@ private data class ChapterPagination(
         }
 }
 
-/** Paginates [chapter] on [dispatcher]; `null` until the first result is ready. */
+/**
+ * Paginates [chapter] off the main thread; `null` until the first result is ready. With its
+ * [book], the chapters next to it are paginated afterwards into the cache.
+ */
 @Composable
-private fun paginatedPages(
+private fun CachingPaginator.paginatedPages(
     chapter: Chapter,
+    book: Book?,
     viewport: Viewport,
     styles: ReadingStyles,
-    dispatcher: CoroutineDispatcher,
 ): State<ChapterPagination?> {
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
     return produceState<ChapterPagination?>(
         initialValue = null,
+        this,
         chapter,
+        book,
         viewport,
         styles,
         density,
-        dispatcher,
     ) {
         val measurer = ComposeBlockMeasurer(textMeasurer, styles, density)
-        val pages = withContext(dispatcher) { Paginator.paginate(chapter, viewport, measurer) }
-        value = ChapterPagination(chapter, viewport, styles, pages)
+        val layout = PageLayout(book?.identifier, viewport, styles, measurer)
+        value = ChapterPagination(chapter, viewport, styles, pagesOf(chapter, layout))
+        prefetchAround(book?.chapters.orEmpty(), chapter.index, layout)
     }
 }
 

@@ -199,6 +199,20 @@ private fun ReadingWithControls(
     }
 }
 
+/** Opens the reader at [state]'s position and sends its page turns to [viewModel]. */
+private fun readingPositionOf(
+    state: ReaderUiState.Reading,
+    viewModel: ReaderViewModel,
+    onCenterTap: () -> Unit,
+): ReadingPosition =
+    ReadingPosition(
+        restoredAnchor = state.position,
+        onPageSettled = viewModel::onPageSettled,
+        onNextChapter = viewModel::onNextChapter,
+        onPreviousChapter = viewModel::onPreviousChapter,
+        onCenterTap = onCenterTap,
+    )
+
 /** The pages, and the controls bar a tap in the center shows; turning a page hides it. */
 @Composable
 private fun PagesWithControls(
@@ -212,16 +226,10 @@ private fun PagesWithControls(
     Box {
         ReaderScreen(
             chapter = state.chapter,
-            position =
-                ReadingPosition(
-                    restoredAnchor = state.position,
-                    onPageSettled = viewModel::onPageSettled,
-                    onNextChapter = viewModel::onNextChapter,
-                    onPreviousChapter = viewModel::onPreviousChapter,
-                    onCenterTap = { controlsVisible = !controlsVisible },
-                ),
+            position = readingPositionOf(state, viewModel) { controlsVisible = !controlsVisible },
             paginationDispatcher = setup.paginationDispatcher,
             settings = setup.settings,
+            book = state.book,
         )
         ReaderControlsBar(
             visible = controlsVisible,
