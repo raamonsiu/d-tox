@@ -92,7 +92,15 @@ El texto corriente **no destaca**: color `text` sobre `background`, sin negritas
 - Toque en bordes izquierdo/derecho o deslizamiento → cambia de página.
 - Indicador de progreso: línea de 1 px o texto `12 / 148` muy tenue; desactivable.
 - Pulsación larga → selección → acciones "Resaltar" / "Nota" (v1).
-- Resaltados: sombreado sutil (`highlight`); notas: pequeño punto `·` al final del fragmento.
+- Resaltados: sombreado sutil (`highlight`); notas: pequeño punto `·` al final del fragmento (D-39).
+  - El punto es el carácter `·` de la fuente de lectura en `textMuted`, dibujado tras el último carácter
+    del fragmento anotado (en una nota de posición, en su ancla) sin alterar la paginación. Un resaltado
+    sin nota no lleva punto.
+  - Tocar el punto (zona ≥ 48 dp, con prioridad sobre la barra y el cambio de página) abre un panel
+    inferior plano: fondo `background`, línea `divider` arriba, sin sombra, velo ni animación, con el
+    texto completo de la nota (desplazable si es largo). Atrás o tocar fuera lo cierra, sin cambiar de página.
+  - TalkBack anuncia el punto como acción "Nota". Las notas también aparecen en la lista de marcas y
+    notas (RF-23), que se abre desde la barra.
 
 ### Transición de página
 
