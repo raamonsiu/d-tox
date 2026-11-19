@@ -14,7 +14,7 @@ Prioridad: **M** = Must, **S** = Should, **C** = Could. Fase: ver [06-roadmap.md
 | RF-04 | Eliminar un libro de la biblioteca sin borrar su archivo original                          | M    | MVP  |
 | RF-05 | Definir una o varias carpetas vigiladas (Storage Access Framework) y listar sus libros     | S    | v1   |
 | RF-06 | Importar PDF con extracción de texto "mejor esfuerzo" y aviso de calidad                   | S    | v1   |
-| RF-07 | Abrir PDF en su diseño original (fallback) cuando la extracción sea mala                   | C    | v1   |
+| RF-07 | Abrir PDF en su diseño original, en un visor aparte del lector, si la extracción es mala   | C    | v1   |
 | RF-08 | Leer metadatos (título, autor, portada ignorada) de EPUB; nombre de archivo en su defecto  | M    | MVP  |
 
 ### Lector
