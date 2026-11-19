@@ -41,15 +41,31 @@ Fuentes: Wikisource en español, Project Gutenberg en español, dominio público
 - Si una obra larga se divide, cada pieza se presenta como parte numerada ("Carta 12, de 124") y es legible de forma independiente.
 - Sin boilerplate de la fuente (cabeceras, notas de edición, licencias de Gutenberg en cuerpo; se mueven a metadatos).
 
+## Repositorio y licencia del contenido
+
+Decidido en D-41 ([07-decisions.md](07-decisions.md)).
+
+- **Dónde**: en este repo, carpeta `content/`. Issues, hooks, CI y revisión son los mismos que los de la app, y un cambio de curación y el pack offline que lo empaqueta (RF-30) caben en la misma PR. Licenciar contenido y código por separado no exige otro repo: basta separarlo por carpeta.
+- **Licencias**, explicadas en `content/LICENSE.md`:
+  - **Textos**: cada uno conserva su licencia y atribución (D-11), recogidas en `license`, `source` y `translator` del ítem. Un texto en dominio público sigue en dominio público: no se le añade licencia. Un texto CC BY o CC BY-SA recortado o limpiado es una adaptación: se indica que se ha modificado y, si es CC BY-SA, se publica con esa misma licencia.
+  - **Aportaciones propias** (selección y orden de `sources.yaml`, metadatos, títulos de lectura, etiquetas, `overrides/`): **CC0-1.0**. Una corrección de erratas no convierte un texto PD en una obra con licencia propia, no se suma una atribución a D-TOX a la del texto y la renuncia cubre también el derecho _sui generis_ sobre bases de datos (UE). No es copyleft: se acepta porque los textos ya son libres y el copyleft protege el código (D-16).
+  - **Código del pipeline**: GPL-3.0-or-later, como el resto del código (D-16).
+- Con el cambio que cree `content/` se añaden `content/LICENSE.md` y una nota en `CONTRIBUTING.md` y en la sección «Licencia» del README: lo que se aporte a `content/` que no sea código se licencia en CC0-1.0.
+- **Lenguaje del pipeline**: Kotlin/JVM, en un módulo Gradle `:content-pipeline` (`content/pipeline/`) que no es dependencia de `:app` ni entra en el APK. CI ya instala JDK 21 y tiene tests, ktlint y detekt; los tests del módulo se añaden al job de Android y a `make check`. Reutiliza librerías ya aprobadas: jsoup (HTML de Wikisource), kotlinx.serialization (`index.json`) y commonmark (comprobar que cada `items/*.md` se lee como en la app); descarga con `java.net.http` del JDK.
+- Necesitan aprobación del dev (D-22) cuando se creen: el plugin `org.jetbrains.kotlin.jvm` (JetBrains, Apache-2.0, versión `kotlin` del catálogo) y, si `sources.yaml` sigue en YAML, un parser YAML.
+
 ## Pipeline
 
 ```
 content/
+ ├─ LICENSE.md          Licencias de la carpeta: textos, aportaciones propias (CC0-1.0), código (GPL)
  ├─ sources.yaml        Lista curada: fuente, obra, licencia, traductor, rango, duración
- ├─ scripts/            fetch → clean → split → render
  ├─ overrides/          Correcciones manuales por ítem (typos, cortes)
- └─ out/                index.json + items/*.md   (artefacto publicado)
+ ├─ pipeline/           Módulo Gradle `:content-pipeline` (Kotlin/JVM): fetch → clean → split → render → validate
+ └─ out/                index.json + items/*.md   (generado, no versionado; CI lo publica)
 ```
+
+`out/` se regenera de forma determinista desde `sources.yaml` (URLs fijas) y `overrides/`, así que no se versiona: el historial auditable es el de la curación.
 
 1. **fetch**: descarga la obra desde la URL fija en `sources.yaml` (con caché).
 2. **clean**: limpieza específica de la fuente (HTML de Wikisource, texto plano de Gutenberg), normalización de espacios y comillas, eliminación de notas.
@@ -78,5 +94,7 @@ La "novedad diaria" se consigue liberando ítems en un calendario editorial prec
 
 ## Pendiente de decidir
 
-- Si el contenido vive en el mismo repo (`content/`) o en un repo aparte (permite licenciar contenido y código por separado). Ver [07-decisions.md](07-decisions.md).
+- Formato de `sources.yaml` y su lectura: YAML con un parser aprobado, o JSON con kotlinx.serialization (#91).
+- Cómo fija el cron de #98 `publishedAt` sin versionar `out/`: calcularlo del orden estable de D-36 y una fecha de inicio, o guardarlo en `sources.yaml`.
+- Si las PRs que solo tocan `content/` (sin pack ni código) deben subir la versión de la app (D-33) y pasar el job de Android en CI.
 - Tamaño del pack inicial (propuesta: 30–60 lecturas, ≈ 1–2 MB de texto).
