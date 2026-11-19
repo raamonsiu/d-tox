@@ -62,7 +62,7 @@ content/
 
 El MVP **no** descubre contenido automáticamente. Una persona (el autor) añade entradas a `sources.yaml`; el cron diario solo **dosifica** lo ya curado (marca `publishedAt`) y regenera el feed. Esto evita problemas de calidad y de licencia, y mantiene el feed pequeño y auditable.
 
-La "novedad diaria" se consigue liberando ítems en un calendario editorial precalculado; el cliente nunca queda sin material porque el pack inicial y la caché cubren días sin red.
+La "novedad diaria" se consigue liberando ítems en un calendario editorial precalculado: 1 lectura nueva por categoría y día, acumulativas (D-36); el cliente nunca queda sin material porque el pack inicial y la caché cubren días sin red.
 
 ## Esquema de selección en cliente
 
