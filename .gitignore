@@ -13,3 +13,8 @@ local.properties
 
 # Test corpus: large files are downloaded by `make corpus`, never versioned.
 app/src/test/resources/corpus/downloads/
+
+# Release signing: keys and their passwords live outside the repository (CONTRIBUTING.md).
+/keystore.properties
+*.jks
+*.keystore

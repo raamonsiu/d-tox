@@ -22,6 +22,21 @@ Con Claude Code, las skills de `.claude/skills/` encadenan estos pasos: `/take-i
 `DTOX[-ticket](tipo)/descripcion_corta`: minúsculas, `_`, máximo 6 palabras.
 Tipos: `feat` `fix` `perf` `refactor` `style` `docs` `test` `build` `ci` `chore`.
 
+## Firma de release
+
+Las claves nunca entran en el repo. Sin configuración, `./gradlew assembleRelease` genera un APK sin firmar
+y no falla.
+
+1. Crea el keystore **fuera del repo** (guárdalo y haz copia de seguridad: sin él no hay actualizaciones):
+   `keytool -genkeypair -v -keystore ~/claves/dtox-release.jks -alias dtox -keyalg RSA -keysize 4096 -validity 10000`
+2. Configúralo con una de estas dos opciones (las variables de entorno mandan sobre el archivo):
+   - copia `keystore.properties.example` a `keystore.properties` (ignorado por git) y rellénalo; las rutas
+     relativas parten de la raíz del repo;
+   - o exporta `DTOX_KEYSTORE_FILE`, `DTOX_KEYSTORE_PASSWORD`, `DTOX_KEY_ALIAS` y `DTOX_KEY_PASSWORD`.
+3. `./gradlew assembleRelease` firma `app/build/outputs/apk/release/app-release.apk`. Compruébalo con
+   `apksigner verify --print-certs <apk>` (en `build-tools` del SDK). Si falta algún valor, Gradle avisa y
+   el APK sale sin firmar.
+
 ## Reglas que bloquean la PR
 
 - **Librería nueva**: explica origen, licencia (compatible con GPL-3.0), autoría y por qué hace falta. Requiere etiqueta `deps-approved`.

@@ -1,3 +1,6 @@
+import java.io.StringReader
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -34,6 +37,64 @@ fun versionCodeOf(versionName: String): Int {
     return major * majorWeight + minor * minorWeight + fix
 }
 
+/** Values needed to sign the release build; they never live in the repository. */
+data class ReleaseSigningValues(
+    val storeFile: File,
+    val storePassword: String,
+    val keyAlias: String,
+    val keyPassword: String,
+)
+
+val keystoreProperties: Properties =
+    Properties().apply {
+        providers
+            .fileContents(rootProject.layout.projectDirectory.file("keystore.properties"))
+            .asText
+            .orNull
+            ?.let { contents -> load(StringReader(contents)) }
+    }
+
+/**
+ * Reads one signing value: the environment variable wins over the ignored `keystore.properties`.
+ *
+ * @return the non-blank value, or null when neither source defines it.
+ */
+fun signingValue(
+    environmentVariable: String,
+    propertyKey: String,
+): String? =
+    providers.environmentVariable(environmentVariable).orNull?.takeIf { it.isNotBlank() }
+        ?: keystoreProperties.getProperty(propertyKey)?.takeIf { it.isNotBlank() }
+
+/**
+ * Collects the release signing values from `DTOX_*` environment variables or `keystore.properties`.
+ *
+ * @return the values when all four are defined (a relative keystore path resolves against the
+ *   repository root), or null so the release build stays unsigned instead of failing.
+ */
+fun releaseSigningValuesOrNull(): ReleaseSigningValues? {
+    val storeFilePath = signingValue("DTOX_KEYSTORE_FILE", "storeFile")
+    val storePassword = signingValue("DTOX_KEYSTORE_PASSWORD", "storePassword")
+    val keyAlias = signingValue("DTOX_KEY_ALIAS", "keyAlias")
+    val keyPassword = signingValue("DTOX_KEY_PASSWORD", "keyPassword")
+    val requiredValues = listOf(storeFilePath, storePassword, keyAlias, keyPassword)
+    val definedValueCount = requiredValues.count { it != null }
+    if (definedValueCount in 1..<requiredValues.size) {
+        logger.warn("Release signing is incomplete; the release build will be unsigned.")
+    }
+    if (storeFilePath == null || storePassword == null || keyAlias == null || keyPassword == null) {
+        return null
+    }
+    return ReleaseSigningValues(
+        storeFile = rootProject.file(storeFilePath),
+        storePassword = storePassword,
+        keyAlias = keyAlias,
+        keyPassword = keyPassword,
+    )
+}
+
+val releaseSigningValues: ReleaseSigningValues? = releaseSigningValuesOrNull()
+
 android {
     namespace = "dev.d1ito.dtox"
     compileSdk {
@@ -53,8 +114,20 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        releaseSigningValues?.let { values ->
+            create("release") {
+                storeFile = values.storeFile
+                storePassword = values.storePassword
+                keyAlias = values.keyAlias
+                keyPassword = values.keyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             optimization {
                 enable = false
             }
