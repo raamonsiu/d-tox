@@ -59,12 +59,12 @@ private val readingColumnMaxWidth = 600.dp
  * so whoever owns the position keeps it across rotation and new paginations.
  *
  * @param chapter chapter to read.
+ * @param book the book [chapter] belongs to; with it, pages are cached and the chapters next to
+ *   [chapter] are paginated ahead, so changing chapter does not wait.
  * @param position where to open, inside [chapter], and who receives the page turns.
  * @param paginationDispatcher where pages are measured; never the main thread.
  * @param settings text size, line spacing and margins (changing them repaginates and reopens
  *   at the page holding [ReadingPosition.restoredAnchor]) and whether page turns slide.
- * @param book the book [chapter] belongs to; with it, pages are cached and the chapters next to
- *   [chapter] are paginated ahead, so changing chapter does not wait.
  */
 @Suppress("LongParameterList") // Five inputs plus the conventional Compose modifier.
 @Composable
