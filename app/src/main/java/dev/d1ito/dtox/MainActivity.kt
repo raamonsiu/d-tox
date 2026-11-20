@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
                     systemIsDark = isSystemInDarkTheme(),
                 )
             WindowMatchesPalette(palette)
-            DTOXTheme(palette) {
+            DTOXTheme(palette, font = (settings ?: ReadingSettings.Default).font) {
                 App(
                     libraryViewModel,
                     readerViewModel,
