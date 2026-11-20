@@ -16,9 +16,9 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.d1ito.dtox.data.importing.MarkdownBlockReader
 import dev.d1ito.dtox.domain.Chapter
+import dev.d1ito.dtox.domain.ReadingFont
 import dev.d1ito.dtox.domain.ReadingSettings
 import dev.d1ito.dtox.domain.textOrNull
 import dev.d1ito.dtox.pagination.Page
@@ -26,11 +26,13 @@ import dev.d1ito.dtox.pagination.PageFragment
 import dev.d1ito.dtox.pagination.Paginator
 import dev.d1ito.dtox.pagination.Viewport
 import dev.d1ito.dtox.ui.theme.DTOXTheme
+import dev.d1ito.dtox.ui.theme.fontFamilyOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
 import kotlin.math.ceil
 
 private val SAMPLE_CHAPTER_MARKDOWN =
@@ -60,8 +62,11 @@ private val SAMPLE_CHAPTER_MARKDOWN =
     volverá atrás ni detendrá su carrera; no hará ruido, no advertirá de su velocidad.
     """.trimIndent()
 
-@RunWith(AndroidJUnit4::class)
-class PageContentFitTest {
+/** Pages drawn by [PageContent] must fit the viewport they were measured for, in every font. */
+@RunWith(Parameterized::class)
+class PageContentFitTest(
+    private val font: ReadingFont,
+) {
     @get:Rule
     val composeRule = createComposeRule()
 
@@ -87,6 +92,7 @@ class PageContentFitTest {
                     .edited(
                         textSizeSp = 14,
                         lineSpacing = 1.5,
+                        font = font,
                     ).getOrThrow(),
         )
 
@@ -100,6 +106,7 @@ class PageContentFitTest {
                     .edited(
                         textSizeSp = 28,
                         lineSpacing = 1.7,
+                        font = font,
                     ).getOrThrow(),
         )
 
@@ -107,7 +114,7 @@ class PageContentFitTest {
         widthPixels: Int,
         heightPixels: Int,
         fontScale: Float? = null,
-        settings: ReadingSettings = ReadingSettings.Default,
+        settings: ReadingSettings = ReadingSettings.Default.edited(font = font).getOrThrow(),
     ) {
         val chapter =
             Chapter
@@ -119,13 +126,14 @@ class PageContentFitTest {
         val viewport = Viewport.create(widthPixels, heightPixels).getOrThrow()
         var pages: List<Page> = emptyList()
         var rewrapErrors: List<String> = emptyList()
+        var measuredStyles: ReadingStyles? = null
         composeRule.setContent {
             val systemDensity = LocalDensity.current
             val density =
                 fontScale?.let { scale -> Density(systemDensity.density, scale) } ?: systemDensity
             CompositionLocalProvider(LocalDensity provides density) {
-                DTOXTheme {
-                    val styles = readingStyles(settings)
+                DTOXTheme(font = settings.font) {
+                    val styles = readingStyles(settings).also { built -> measuredStyles = built }
                     val textMeasurer = rememberTextMeasurer()
                     val measurer = ComposeBlockMeasurer(textMeasurer, styles, density)
                     pages = Paginator.paginate(chapter, viewport, measurer).getOrThrow()
@@ -145,6 +153,13 @@ class PageContentFitTest {
         }
         composeRule.waitForIdle()
         assertTrue("Expected several pages, got ${pages.size}", pages.size > 1)
+        chapter.blocks.forEach { block ->
+            assertEquals(
+                "Block $block must use the $font family",
+                fontFamilyOf(font),
+                measuredStyles?.styleOf(block)?.textStyle?.fontFamily,
+            )
+        }
         assertEquals(
             "Fragments that wrap differently when drawn",
             emptyList<String>(),
@@ -268,5 +283,11 @@ class PageContentFitTest {
         return chapter.blocks.indices.joinToString(
             "|",
         ) { index -> byBlock[index]?.toString().orEmpty() }
+    }
+
+    companion object {
+        @JvmStatic
+        @Parameterized.Parameters(name = "{0}")
+        fun fonts(): List<ReadingFont> = ReadingFont.entries
     }
 }

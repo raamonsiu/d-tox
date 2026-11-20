@@ -22,6 +22,7 @@ import dev.d1ito.dtox.domain.Block
 import dev.d1ito.dtox.domain.ReadingSettings
 import dev.d1ito.dtox.ui.theme.DTOXTheme
 import dev.d1ito.dtox.ui.theme.ReadingPalette
+import dev.d1ito.dtox.ui.theme.fontFamilyOf
 
 /** Shown instead of a [Block.Separator], which has no text of its own. */
 const val SEPARATOR_GLYPHS = "·  ·  ·"
@@ -128,6 +129,9 @@ class ReadingStyles(
  * Layout rules that keep drawing equal to measuring (D-31): greedy line breaking without
  * hyphenation, so a fragment starting at a line boundary wraps exactly as the whole block did;
  * and no line height trimming, so every line keeps its full height wherever a fragment starts.
+ * Lines are never shorter than the font's own height (OpenDyslexic's is 1.82 em): with a shorter
+ * line, the first and last lines of every drawn fragment would grow to fit the tall glyphs, and
+ * a fragment would draw taller than its lines measured inside the whole block.
  */
 private fun TextStyle.forPagination(): TextStyle =
     copy(
@@ -137,13 +141,15 @@ private fun TextStyle.forPagination(): TextStyle =
             LineHeightStyle(
                 LineHeightStyle.Alignment.Center,
                 LineHeightStyle.Trim.None,
+                LineHeightStyle.Mode.Minimum,
             ),
     )
 
 /**
- * Reading styles for the current theme and [settings]: the body uses the chosen text size and
- * line spacing, headings keep their scale relative to the body (H1 +40 %, H2 +20 %), colors come
- * from the palette and the list gutter grows with the body size (and so with the font scale).
+ * Reading styles for the current theme and [settings]: every block uses the chosen font family,
+ * the body uses the chosen text size and line spacing, headings keep their scale relative to the
+ * body (H1 +40 %, H2 +20 %), colors come from the palette and the list gutter grows with the body
+ * size (and so with the font scale).
  */
 @Composable
 @ReadOnlyComposable
@@ -170,15 +176,9 @@ private fun readingStylesOf(
     palette: ReadingPalette,
     density: Density,
 ): ReadingStyles {
-    val baseSize = typography.bodyLarge.fontSize
-    val scaleToSettings = settings.textSizeSp / baseSize.value
-    val lineHeight = settings.lineSpacing.em
+    val scaleToSettings = settings.textSizeSp / typography.bodyLarge.fontSize.value
     val sized = { style: TextStyle, color: Color ->
-        style.copy(
-            fontSize = style.fontSize * scaleToSettings,
-            lineHeight = lineHeight,
-            color = color,
-        )
+        style.withSettings(settings, scaleToSettings, color)
     }
     val body = sized(typography.bodyLarge, palette.text)
     val bodyFontSize = with(density) { body.fontSize.toDp() }
@@ -198,3 +198,19 @@ private fun readingStylesOf(
             ),
     )
 }
+
+/**
+ * @return this style in the chosen font family and line spacing, with its size multiplied by
+ *   [scaleToSettings] so headings keep their scale relative to the body, and in [color].
+ */
+private fun TextStyle.withSettings(
+    settings: ReadingSettings,
+    scaleToSettings: Float,
+    color: Color,
+): TextStyle =
+    copy(
+        fontFamily = fontFamilyOf(settings.font),
+        fontSize = fontSize * scaleToSettings,
+        lineHeight = settings.lineSpacing.em,
+        color = color,
+    )
