@@ -31,7 +31,19 @@ private val documentedFile =
         "updatedAt": "2026-10-11T07:45:12Z",
         "finished": false
       },
-      "annotations": [{ "id": "01JAB7Z", "type": "highlight", "future": true }],
+      "annotations": [
+        {
+          "id": "01JAB7ZQ8K4M2N6P9R3S5T7V1W",
+          "type": "bookmark",
+          "start": { "chapter": 6, "block": 0, "offset": 0, "quote": "Carta VI" },
+          "end": null,
+          "text": null,
+          "note": null,
+          "createdAt": "2026-10-11T08:10:00Z",
+          "updatedAt": "2026-10-11T08:10:00Z",
+          "future": true
+        }
+      ],
       "readingTimeSeconds": 5400
     }
     """.trimIndent()
