@@ -47,4 +47,15 @@
     <string name="settings_progress_indicator">Indicador de progreso</string>
     <string name="settings_on">Sí</string>
     <string name="settings_off">No</string>
+    <string name="settings_section_about">Acerca de</string>
+    <string name="settings_about_open">Versión y licencias</string>
+    <string name="about_title">Acerca de</string>
+    <string name="about_version">D-TOX, versión %1$s</string>
+    <string name="about_version_unavailable">No se pudo leer la versión.</string>
+    <string name="about_section_code">Código</string>
+    <string name="about_code_notice">D-TOX es software libre: puedes redistribuirlo y modificarlo según la Licencia Pública General de GNU, versión 3 o (a tu elección) cualquier versión posterior. Se distribuye sin ninguna garantía.</string>
+    <string name="about_section_fonts">Fuentes tipográficas</string>
+    <string name="about_section_libraries">Librerías</string>
+    <string name="about_entry">%1$s · %2$s</string>
+    <string name="about_license_unavailable">No se pudo cargar la licencia.</string>
 </resources>

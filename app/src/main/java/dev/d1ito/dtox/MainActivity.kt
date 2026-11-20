@@ -35,6 +35,7 @@ import dev.d1ito.dtox.ui.reader.ReaderScreen
 import dev.d1ito.dtox.ui.reader.ReaderUiState
 import dev.d1ito.dtox.ui.reader.ReaderViewModel
 import dev.d1ito.dtox.ui.reader.ReadingPosition
+import dev.d1ito.dtox.ui.settings.AboutScreen
 import dev.d1ito.dtox.ui.settings.ReadingSettingsViewModel
 import dev.d1ito.dtox.ui.settings.SettingsContent
 import dev.d1ito.dtox.ui.theme.DTOXTheme
@@ -79,7 +80,7 @@ class MainActivity : ComponentActivity() {
                     libraryViewModel,
                     readerViewModel,
                     settingsViewModel,
-                    container.dispatchers.computation,
+                    container.dispatchers,
                 )
             }
         }
@@ -109,7 +110,7 @@ private fun App(
     libraryViewModel: LibraryViewModel,
     readerViewModel: ReaderViewModel,
     settingsViewModel: ReadingSettingsViewModel,
-    paginationDispatcher: CoroutineDispatcher,
+    dispatchers: AppDispatchers,
 ) {
     val readerState by readerViewModel.state.collectAsState()
     // null until read from disk: paginating with the defaults first would paginate twice.
@@ -118,7 +119,7 @@ private fun App(
     val loadedSettings = settings
     when {
         settingsVisible && loadedSettings != null ->
-            Settings(settingsViewModel, loadedSettings) { settingsVisible = false }
+            Settings(settingsViewModel, loadedSettings, dispatchers.io) { settingsVisible = false }
         readerState == ReaderUiState.Closed ->
             LibraryScreen(
                 libraryViewModel,
@@ -129,7 +130,7 @@ private fun App(
         else -> {
             BackHandler(onBack = readerViewModel::close)
             val reading =
-                ReadingSetup(loadedSettings, paginationDispatcher) {
+                ReadingSetup(loadedSettings, dispatchers.computation) {
                     settingsVisible =
                         true
                 }
@@ -138,16 +139,32 @@ private fun App(
     }
 }
 
-/** The settings screen; back and its own button close it. */
+/**
+ * The settings screen, or the "Acerca de" screen it opens; back and their own buttons close them.
+ *
+ * @param ioDispatcher where "Acerca de" reads the version and license texts.
+ */
 @Composable
 private fun Settings(
     viewModel: ReadingSettingsViewModel,
     settings: ReadingSettings,
+    ioDispatcher: CoroutineDispatcher,
     onClose: () -> Unit,
 ) {
-    BackHandler(onBack = onClose)
-    val saveFailed by viewModel.saveFailed.collectAsState()
-    SettingsContent(settings, saveFailed, onChange = viewModel::change, onBack = onClose)
+    var aboutVisible by rememberSaveable { mutableStateOf(false) }
+    if (aboutVisible) {
+        AboutScreen(ioDispatcher, onBack = { aboutVisible = false })
+    } else {
+        BackHandler(onBack = onClose)
+        val saveFailed by viewModel.saveFailed.collectAsState()
+        SettingsContent(
+            settings,
+            saveFailed,
+            onChange = viewModel::change,
+            onBack = onClose,
+            onOpenAbout = { aboutVisible = true },
+        )
+    }
 }
 
 /**
