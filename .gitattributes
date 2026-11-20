@@ -1,4 +1,5 @@
 * text=auto eol=lf
 *.ttf binary
+*.otf binary
 # Corpus fixtures keep their exact bytes (encodings, BOM, CRLF) for the checksums.
 app/src/test/resources/corpus/files/** -text
