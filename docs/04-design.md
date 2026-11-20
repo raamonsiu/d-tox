@@ -118,7 +118,7 @@ El texto corriente **no destaca**: color `text` sobre `background`, sin negritas
 - Lista plana de texto. Secciones: Lectura, Avisos, Contenido, Datos, Acerca de.
 - Avisos: activar, número al día (0–4), horas, horario de silencio.
 - Contenido: categorías (filosofía, ciencia), duraciones (5/10/20 min).
-- Acerca de: versión, licencias (código, fuentes tipográficas, lecturas).
+- Acerca de: versión, licencias (código, fuentes tipográficas, librerías, lecturas).
 
 ### Notificación
 

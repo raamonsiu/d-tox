@@ -38,11 +38,11 @@ import java.util.Locale
 private const val LINE_SPACING_STEP = 0.1
 private const val TENTHS_PER_UNIT = 10.0
 
-private val screenMargin = 24.dp
-private val settingSpacing = 20.dp
+internal val screenMargin = 24.dp
+internal val settingSpacing = 20.dp
 
 /** Minimum touch target (docs/04-design.md: zonas táctiles ≥ 48 dp). */
-private val minimumTouchTarget = 48.dp
+internal val minimumTouchTarget = 48.dp
 
 private val themeLabels =
     listOf(
@@ -70,20 +70,23 @@ private val switchLabels = listOf(true to R.string.settings_on, false to R.strin
 
 /**
  * Flat text list of settings (docs/04-design.md §Ajustes). Only the Lectura section exists in the
- * MVP; Avisos, Contenido and Datos arrive with their phases. Changes apply at once.
+ * MVP, with Acerca de at the end; Avisos, Contenido and Datos arrive with their phases. Changes
+ * apply at once.
  *
  * @param settings values shown.
  * @param saveFailed shows that the last change could not be saved.
  * @param onChange receives each edit of the current settings.
  * @param onBack closes the screen.
+ * @param onOpenAbout opens the version and licenses screen.
  */
-@Suppress("LongParameterList") // Four inputs plus the conventional Compose modifier.
+@Suppress("LongParameterList") // Five inputs plus the conventional Compose modifier.
 @Composable
 fun SettingsContent(
     settings: ReadingSettings,
     saveFailed: Boolean,
     onChange: SettingsEdit,
     onBack: () -> Unit,
+    onOpenAbout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -96,9 +99,7 @@ fun SettingsContent(
                 .padding(screenMargin),
         verticalArrangement = Arrangement.spacedBy(settingSpacing),
     ) {
-        TextButton(onClick = onBack, modifier = Modifier.sizeIn(minHeight = minimumTouchTarget)) {
-            Text(stringResource(R.string.settings_back), color = DTOXTheme.palette.text)
-        }
+        TextAction(stringResource(R.string.settings_back), onBack)
         Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.titleLarge)
         Text(
             stringResource(R.string.settings_section_reading),
@@ -106,6 +107,22 @@ fun SettingsContent(
         )
         if (saveFailed) MutedText(stringResource(R.string.settings_save_failed))
         ReadingSection(settings, onChange)
+        Text(
+            stringResource(R.string.settings_section_about),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        TextAction(stringResource(R.string.settings_about_open), onOpenAbout)
+    }
+}
+
+/** A plain text button in the text color, at least the minimum touch target high. */
+@Composable
+internal fun TextAction(
+    label: String,
+    onClick: () -> Unit,
+) {
+    TextButton(onClick = onClick, modifier = Modifier.sizeIn(minHeight = minimumTouchTarget)) {
+        Text(label, color = DTOXTheme.palette.text)
     }
 }
 
@@ -278,6 +295,6 @@ private fun StepButton(
 }
 
 @Composable
-private fun MutedText(text: String) {
+internal fun MutedText(text: String) {
     Text(text = text, color = DTOXTheme.palette.textMuted)
 }

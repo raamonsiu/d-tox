@@ -32,6 +32,7 @@ class SettingsContentTest {
 
     private var settings by mutableStateOf(ReadingSettings.Default)
     private var backPresses = 0
+    private var aboutOpenings = 0
 
     private fun text(
         resource: Int,
@@ -47,6 +48,7 @@ class SettingsContentTest {
                     saveFailed = saveFailed,
                     onChange = { edit -> settings = settings.edit().getOrThrow() },
                     onBack = { backPresses++ },
+                    onOpenAbout = { aboutOpenings++ },
                 )
             }
         }
@@ -102,6 +104,19 @@ class SettingsContentTest {
 
         assertEquals(PageMargins.WIDE, settings.margins)
         assertEquals(1, backPresses)
+    }
+
+    @Test
+    fun aboutEntry_opensAbout() {
+        showSettings()
+
+        composeRule
+            .onNodeWithText(
+                text(R.string.settings_about_open),
+            ).performScrollTo()
+            .performClick()
+
+        assertEquals(1, aboutOpenings)
     }
 
     @Test
