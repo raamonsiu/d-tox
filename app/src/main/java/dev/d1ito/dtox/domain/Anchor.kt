@@ -21,6 +21,9 @@ data class Anchor private constructor(
     override fun compareTo(other: Anchor): Int =
         compareValuesBy(this, other, Anchor::chapter, Anchor::block, Anchor::offset)
 
+    /** @return the same position with no [quote]. */
+    fun withoutQuote(): Anchor = copy(quote = null)
+
     companion object {
         /** @return the anchor, or [DocumentModelError.NegativeValue] for a negative position. */
         fun create(
@@ -35,10 +38,10 @@ data class Anchor private constructor(
 }
 
 /**
- * A span of text between two anchors, e.g. a highlight.
+ * A span of text between two anchors, e.g. a highlight (docs/02-data-formats.md §3).
  *
  * @property start first position, inclusive.
- * @property end last position, never before [start].
+ * @property end last position, never before [start]; always without quote, only [start] needs one.
  */
 @ConsistentCopyVisibility
 data class AnchorRange private constructor(
@@ -46,13 +49,16 @@ data class AnchorRange private constructor(
     val end: Anchor,
 ) {
     companion object {
-        /** @return the range, or [DocumentModelError.RangeEndsBeforeStart]. */
+        /**
+         * @param end its quote is dropped.
+         * @return the range, or [DocumentModelError.RangeEndsBeforeStart].
+         */
         fun create(
             start: Anchor,
             end: Anchor,
         ): Result<AnchorRange> =
             if (end >= start) {
-                Result.success(AnchorRange(start, end))
+                Result.success(AnchorRange(start, end.withoutQuote()))
             } else {
                 Result.failure(DocumentModelError.RangeEndsBeforeStart(start, end))
             }

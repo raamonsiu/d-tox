@@ -114,6 +114,19 @@ class DocumentModelTest {
     }
 
     @Test
+    fun anchorRange_keepsStartQuoteAndDropsEndQuote() {
+        val start = anchor(chapter = 0, block = 3, offset = 10, quote = "ser feliz")
+        val range =
+            AnchorRange
+                .create(
+                    start,
+                    anchor(chapter = 0, block = 3, offset = 64, quote = "que"),
+                ).getOrThrow()
+        assertEquals("ser feliz", range.start.quote)
+        assertEquals(anchor(chapter = 0, block = 3, offset = 64), range.end)
+    }
+
+    @Test
     fun anchorRange_rejectsEndBeforeStart() {
         val start = anchor(chapter = 1, block = 0, offset = 0)
         val end = anchor(chapter = 0, block = 5, offset = 0)

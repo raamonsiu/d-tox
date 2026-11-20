@@ -34,6 +34,14 @@ sealed class DocumentModelError(
         val start: Anchor,
         val end: Anchor,
     ) : DocumentModelError("Range end $end is before start $start")
+
+    /** An annotation identifier that is neither a UUID nor a ULID. */
+    class InvalidAnnotationIdentifier(
+        val rejectedValue: String,
+    ) : DocumentModelError("Invalid annotation identifier: '$rejectedValue'")
+
+    /** An annotation note that is empty or only whitespace. */
+    class BlankNote : DocumentModelError("Annotation note must not be blank")
 }
 
 /**

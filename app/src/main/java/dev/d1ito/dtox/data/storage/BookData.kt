@@ -1,8 +1,8 @@
 package dev.d1ito.dtox.data.storage
 
 import dev.d1ito.dtox.domain.Anchor
+import dev.d1ito.dtox.domain.BookAnnotation
 import dev.d1ito.dtox.domain.BookIdentifier
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import java.time.Instant
 
@@ -11,9 +11,10 @@ import java.time.Instant
  *
  * @property source where the book came from.
  * @property progress last reading position, `null` until the book is opened.
- * @property annotations kept as read, not interpreted until the annotation model exists (Fase 2).
+ * @property annotations highlights, notes and bookmarks, in file order.
  * @property preservedFields the JSON object this was read from, or empty for a new file; fields the
- *   app does not know are written back unchanged (forward compatibility).
+ *   app does not know are written back unchanged (forward compatibility), also inside each
+ *   annotation, matched by its identifier.
  */
 data class BookData(
     val bookIdentifier: BookIdentifier,
@@ -21,7 +22,7 @@ data class BookData(
     val author: String?,
     val source: BookSource,
     val progress: ReadingProgress?,
-    val annotations: JsonArray = JsonArray(emptyList()),
+    val annotations: List<BookAnnotation> = emptyList(),
     val preservedFields: JsonObject = JsonObject(emptyMap()),
 )
 

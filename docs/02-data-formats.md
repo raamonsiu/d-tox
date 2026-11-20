@@ -113,9 +113,11 @@ Ubicación (MVP): almacenamiento interno de la app, `files/books/<bookId>.json`.
 Reglas:
 
 - `type ∈ { highlight, note, bookmark }`. Un resaltado puede llevar `note`.
-- `id`: ULID/UUID para poder fusionar sin colisiones en el futuro (sync por archivos).
+- `end` (sin `quote`, ver §3) y `text` solo en `highlight`, donde son obligatorios; en `note` y `bookmark` valen `null`. `note` es obligatoria en `note` y `null` en `bookmark`; si existe, no está vacía.
+- `id`: ULID/UUID para poder fusionar sin colisiones en el futuro (sync por archivos); único en el archivo. La app genera UUID v4 y acepta ambos al leer.
+- Una anotación inválida o de `type` desconocido hace corrupto todo el archivo (se aparta como `*.corrupt`, sin borrarlo); un tipo nuevo requiere subir `version`.
 - Fechas en ISO-8601 UTC.
-- Campos desconocidos se **preservan** al reescribir (compatibilidad hacia delante).
+- Campos desconocidos se **preservan** al reescribir (compatibilidad hacia delante); dentro de `annotations`, emparejando cada anotación por `id`.
 - Escritura atómica: escribir a `*.tmp`, `fsync`, `rename`.
 - Guardado del progreso con _debounce_ (p. ej. 2 s tras cambiar de página y al pasar a segundo plano), no en cada cambio.
 - `version` entero; se migra al abrir si es menor.
