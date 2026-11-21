@@ -22,7 +22,8 @@ import java.time.Clock
  *
  * If the stored file cannot be read (I/O error, newer format) the position is not saved at all,
  * so a file this version does not understand is never overwritten. A failed write is retried on
- * the next save, which always writes the latest position.
+ * the next save, which always writes the latest position. Each save changes only the progress of
+ * the file as stored at that moment, so annotations written meanwhile are kept.
  *
  * @param waitBeforeSaving suspends for the debounce time, e.g. `delay(2.seconds)`.
  * @param scope runs the saves; cancelling it drops a pending save, so [flush] first.
@@ -35,7 +36,9 @@ class ReadingProgressKeeper(
 ) {
     private val saveLock = Mutex()
     private var openBook: Book? = null
-    private var bookData: BookData? = null
+
+    /** Contents for a new data file; `null` until [open] could read the stored one. */
+    private var dataForNewFile: BookData? = null
     private var unsavedPosition: Anchor? = null
     private var pendingSave: Job? = null
 
@@ -52,7 +55,7 @@ class ReadingProgressKeeper(
     ): Anchor? {
         val stored = store.read(book.identifier).getOrElse { return null }
         openBook = book
-        bookData = stored ?: newBookData(book, sourceFileName)
+        dataForNewFile = newBookData(book, sourceFileName)
         val storedAnchor = stored?.progress?.anchor ?: return null
         val relocated = book.relocate(storedAnchor)
         if (relocated != storedAnchor) {
@@ -64,7 +67,7 @@ class ReadingProgressKeeper(
 
     /** Records the new reading position and saves it once the reader stays there. */
     fun onPositionChanged(position: Anchor) {
-        if (bookData == null) return
+        if (dataForNewFile == null) return
         unsavedPosition = position
         pendingSave?.cancel()
         pendingSave =
@@ -85,22 +88,25 @@ class ReadingProgressKeeper(
         saveLock.withLock {
             val position = unsavedPosition ?: return@withLock
             val book = openBook ?: return@withLock
-            val current = bookData ?: return@withLock
-            val updated =
-                current.copy(
-                    progress =
-                        ReadingProgress(
-                            anchor = position,
-                            percent = book.readingPercentAt(position),
-                            updatedAt = clock.instant(),
-                            finished = current.progress?.finished ?: false,
-                        ),
-                )
-            store.write(updated).onSuccess {
-                bookData = updated
-                if (unsavedPosition == position) unsavedPosition = null
-            }
+            val newFileData = dataForNewFile ?: return@withLock
+            store
+                .update(book.identifier) { stored ->
+                    val current = stored ?: newFileData
+                    Result.success(current.copy(progress = progressAt(position, book, current)))
+                }.onSuccess { if (unsavedPosition == position) unsavedPosition = null }
         }
+
+    private fun progressAt(
+        position: Anchor,
+        book: Book,
+        current: BookData,
+    ): ReadingProgress =
+        ReadingProgress(
+            anchor = position,
+            percent = book.readingPercentAt(position),
+            updatedAt = clock.instant(),
+            finished = current.progress?.finished ?: false,
+        )
 
     private fun newBookData(
         book: Book,
