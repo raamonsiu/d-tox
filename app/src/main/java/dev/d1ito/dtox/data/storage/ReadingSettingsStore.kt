@@ -4,6 +4,7 @@ import dev.d1ito.dtox.domain.PageMargins
 import dev.d1ito.dtox.domain.ReadingFont
 import dev.d1ito.dtox.domain.ReadingSettings
 import dev.d1ito.dtox.domain.ReadingTheme
+import dev.d1ito.dtox.domain.ReminderSettings
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,7 +44,8 @@ interface ReadingSettingsStore {
  * Keeps the reading settings in the `"reading"` section of `settings.json`
  * (docs/02-data-formats.md §5), written atomically. Other sections and unknown fields are kept.
  * Settings must never stop the app: a missing or corrupt file reads as [ReadingSettings.Default],
- * and a missing or invalid value as its default.
+ * and a missing or invalid value as its default. It also keeps the `"reminders"` section
+ * ([ReminderSettingsStore]): one owner of the file, so no section overwrites another's changes.
  *
  * @param settingsFile e.g. `files/settings.json`.
  * @param ioDispatcher where file I/O runs; never the main thread.
@@ -52,7 +54,8 @@ class FileReadingSettingsStore(
     private val settingsFile: File,
     private val fileWriter: AtomicFileWriter,
     private val ioDispatcher: CoroutineDispatcher,
-) : ReadingSettingsStore {
+) : ReadingSettingsStore,
+    ReminderSettingsStore {
     private val current = MutableStateFlow<ReadingSettings?>(null)
     private val lock = Mutex()
     private var fileContent = JsonObject(emptyMap())
@@ -79,6 +82,7 @@ class FileReadingSettingsStore(
         if (current.value != null) return
         fileContent = withContext(ioDispatcher) { readFileContent() }
         current.value = readingSettingsOf(fileContent[READING_SECTION] as? JsonObject)
+        currentReminders.value = reminderSettingsOf(fileContent[REMINDERS_SECTION] as? JsonObject)
     }
 
     private fun readFileContent(): JsonObject =
@@ -100,6 +104,28 @@ class FileReadingSettingsStore(
             Json.parseToJsonElement(text) as? JsonObject ?: JsonObject(emptyMap())
         } catch (expectedCorrupt: SerializationException) {
             JsonObject(emptyMap())
+        }
+
+    // Reminders section (#112): kept apart so other sections can be added beside it.
+
+    private val currentReminders = MutableStateFlow<ReminderSettings?>(null)
+
+    override val reminderSettings: Flow<ReminderSettings> =
+        flow {
+            lock.withLock { loadOnce() }
+            emitAll(currentReminders.filterNotNull())
+        }
+
+    override suspend fun updateReminders(settings: ReminderSettings): Result<Unit> =
+        lock.withLock {
+            loadOnce()
+            val updated =
+                merged(fileContent, reminderSettingsJson(settings, SETTINGS_FORMAT_VERSION))
+            val text = prettyJson.encodeToString(JsonElement.serializer(), updated)
+            fileWriter.write(settingsFile, text.toByteArray(Charsets.UTF_8)).onSuccess {
+                fileContent = updated
+                currentReminders.value = settings
+            }
         }
 }
 

@@ -17,6 +17,7 @@ import dev.d1ito.dtox.data.storage.LibraryBookRemover
 import dev.d1ito.dtox.data.storage.LibraryIndex
 import dev.d1ito.dtox.data.storage.ParsedBookCache
 import dev.d1ito.dtox.data.storage.ReadingSettingsStore
+import dev.d1ito.dtox.data.storage.ReminderSettingsStore
 import dev.d1ito.dtox.data.storage.SyncedAtomicFileWriter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +62,7 @@ interface AppContainer {
     val libraryBookLoader: LibraryBookLoader
     val readingSettingsStore: ReadingSettingsStore
     val libraryBookRemover: LibraryBookRemover
+    val reminderSettingsStore: ReminderSettingsStore
 }
 
 /**
@@ -128,11 +130,14 @@ class DefaultAppContainer(
         LibraryBookLoader(libraryDirectory, parsersByExtension, parsedBookCache, dispatchers.io)
     }
 
-    override val readingSettingsStore: ReadingSettingsStore by lazy {
+    override val readingSettingsStore: FileReadingSettingsStore by lazy {
         FileReadingSettingsStore(File(filesDirectory, "settings.json"), fileWriter, dispatchers.io)
     }
 
     override val libraryBookRemover: LibraryBookRemover by lazy {
         LibraryBookRemover(libraryDirectory, parsedBookCache, libraryIndex, dispatchers.io)
     }
+
+    /** The same store as [readingSettingsStore]: one owner of `settings.json`. */
+    override val reminderSettingsStore: ReminderSettingsStore get() = readingSettingsStore
 }

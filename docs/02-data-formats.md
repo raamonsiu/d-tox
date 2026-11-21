@@ -128,6 +128,20 @@ Reglas:
 
 `files/settings.json` (o DataStore). Incluye tipografía, tema, animación, avisos, categorías, duraciones, horario de silencio. No contiene datos personales.
 
+Sección `reminders` (avisos, RF-33/RF-34):
+
+```json
+"reminders": {
+  "enabled": false,
+  "times": ["19:00"],
+  "quietHours": { "start": "22:00", "end": "08:00" }
+}
+```
+
+- Horas en 24 h `"HH:mm"`. Avisos al día = número de `times` (0–4), sin repetir y ordenadas.
+- El silencio puede cruzar la medianoche; `start` está dentro y `end` no. Ninguna hora de `times` cae en el silencio; `start ≠ end`.
+- Un valor inválido toma su valor por defecto; las horas repetidas, en silencio o de más se descartan al leer.
+
 ## 6. Feed de lecturas cortas
 
 Feed estático servido por HTTPS (p. ej. GitHub Pages). Detalle del pipeline en [05-content-sources.md](05-content-sources.md).
