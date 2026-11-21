@@ -128,19 +128,9 @@ Reglas:
 
 `files/settings.json` (o DataStore). Incluye tipografía, tema, animación, avisos, categorías, duraciones, horario de silencio. No contiene datos personales.
 
-Sección `reminders` (avisos, RF-33/RF-34):
-
-```json
-"reminders": {
-  "enabled": false,
-  "times": ["19:00"],
-  "quietHours": { "start": "22:00", "end": "08:00" }
-}
-```
-
-- Horas en 24 h `"HH:mm"`. Avisos al día = número de `times` (0–4), sin repetir y ordenadas.
-- El silencio puede cruzar la medianoche; `start` está dentro y `end` no. Ninguna hora de `times` cae en el silencio; `start ≠ end`.
-- Un valor inválido toma su valor por defecto; las horas repetidas, en silencio o de más se descartan al leer.
+- Un objeto `{ "version": 1, ... }` con una sección por grupo de ajustes; todas las secciones comparten un único archivo y una única escritura atómica, que conserva las demás secciones y los campos desconocidos. Un valor ausente o inválido toma su valor por defecto.
+- `content` (RF-32): `{ "categories": ["filosofia", "ciencia"], "durations": [5, 10, 20] }`, con los valores del feed (§6). Por defecto, todas; siempre queda al menos una categoría y una duración elegidas, y una lista vacía o sin valores conocidos se lee como la de por defecto.
+- `reminders` (RF-33/RF-34): `{ "enabled": false, "times": ["19:00"], "quietHours": { "start": "22:00", "end": "08:00" } }`. Horas en 24 h `"HH:mm"`; avisos al día = número de `times` (0–4), sin repetir y ordenadas. El silencio puede cruzar la medianoche (`start` está dentro y `end` no), `start ≠ end` y ninguna hora de `times` cae en él; al leer, las horas repetidas, en silencio o de más se descartan.
 
 ## 6. Feed de lecturas cortas
 

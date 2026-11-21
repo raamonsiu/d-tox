@@ -36,10 +36,13 @@ import dev.d1ito.dtox.ui.reader.ReaderUiState
 import dev.d1ito.dtox.ui.reader.ReaderViewModel
 import dev.d1ito.dtox.ui.reader.ReadingPosition
 import dev.d1ito.dtox.ui.settings.AboutScreen
+import dev.d1ito.dtox.ui.settings.ContentPreferencesViewModel
 import dev.d1ito.dtox.ui.settings.ReadingSettingsViewModel
-import dev.d1ito.dtox.ui.settings.ReminderSettingsSection
 import dev.d1ito.dtox.ui.settings.ReminderSettingsViewModel
 import dev.d1ito.dtox.ui.settings.SettingsContent
+import dev.d1ito.dtox.ui.settings.SettingsViewModels
+import dev.d1ito.dtox.ui.settings.contentSettings
+import dev.d1ito.dtox.ui.settings.reminderSettings
 import dev.d1ito.dtox.ui.theme.DTOXTheme
 import dev.d1ito.dtox.ui.theme.WindowMatchesPalette
 import dev.d1ito.dtox.ui.theme.readingPaletteFor
@@ -64,6 +67,10 @@ class MainActivity : ComponentActivity() {
         ReadingSettingsViewModel.factory(container)
     }
 
+    private val contentPreferencesViewModel: ContentPreferencesViewModel by viewModels {
+        ContentPreferencesViewModel.factory(container)
+    }
+
     private val reminderSettingsViewModel: ReminderSettingsViewModel by viewModels {
         ReminderSettingsViewModel.factory(container)
     }
@@ -85,9 +92,13 @@ class MainActivity : ComponentActivity() {
                 App(
                     libraryViewModel,
                     readerViewModel,
-                    settingsViewModel,
+                    SettingsViewModels(
+                        settingsViewModel,
+                        contentPreferencesViewModel,
+                        reminderSettingsViewModel,
+                    ),
                     container.dispatchers,
-                ) { ReminderSettingsSection(reminderSettingsViewModel) }
+                )
             }
         }
     }
@@ -111,25 +122,21 @@ class MainActivity : ComponentActivity() {
  * Library while no book is open, the reader otherwise; the settings screen over either of them.
  * Back closes the settings first, then the book.
  */
-@Suppress("LongParameterList") // Screens' view models plus the settings sections they own.
 @Composable
 private fun App(
     libraryViewModel: LibraryViewModel,
     readerViewModel: ReaderViewModel,
-    settingsViewModel: ReadingSettingsViewModel,
+    settingsViewModels: SettingsViewModels,
     dispatchers: AppDispatchers,
-    reminderSettings: @Composable () -> Unit,
 ) {
     val readerState by readerViewModel.state.collectAsState()
     // null until read from disk: paginating with the defaults first would paginate twice.
-    val settings by settingsViewModel.settings.collectAsState()
+    val settings by settingsViewModels.reading.settings.collectAsState()
     var settingsVisible by rememberSaveable { mutableStateOf(false) }
     val loadedSettings = settings
     when {
         settingsVisible && loadedSettings != null ->
-            Settings(settingsViewModel, loadedSettings, dispatchers.io, reminderSettings) {
-                settingsVisible = false
-            }
+            Settings(settingsViewModels, loadedSettings, dispatchers.io) { settingsVisible = false }
         readerState == ReaderUiState.Closed ->
             LibraryScreen(
                 libraryViewModel,
@@ -153,15 +160,12 @@ private fun App(
  * The settings screen, or the "Acerca de" screen it opens; back and their own buttons close them.
  *
  * @param ioDispatcher where "Acerca de" reads the version and license texts.
- * @param reminderSettings the "Avisos" section.
  */
-@Suppress("LongParameterList") // The reading settings plus the sections from other features.
 @Composable
 private fun Settings(
-    viewModel: ReadingSettingsViewModel,
+    viewModels: SettingsViewModels,
     settings: ReadingSettings,
     ioDispatcher: CoroutineDispatcher,
-    reminderSettings: @Composable () -> Unit,
     onClose: () -> Unit,
 ) {
     var aboutVisible by rememberSaveable { mutableStateOf(false) }
@@ -169,14 +173,15 @@ private fun Settings(
         AboutScreen(ioDispatcher, onBack = { aboutVisible = false })
     } else {
         BackHandler(onBack = onClose)
-        val saveFailed by viewModel.saveFailed.collectAsState()
+        val saveFailed by viewModels.reading.saveFailed.collectAsState()
         SettingsContent(
             settings,
             saveFailed,
-            onChange = viewModel::change,
+            onChange = viewModels.reading::change,
+            content = viewModels.content.contentSettings(),
+            reminders = viewModels.reminders.reminderSettings(),
             onBack = onClose,
             onOpenAbout = { aboutVisible = true },
-            reminders = reminderSettings,
         )
     }
 }

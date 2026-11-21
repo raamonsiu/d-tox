@@ -69,27 +69,28 @@ private val marginLabels =
 internal val switchLabels = listOf(true to R.string.settings_on, false to R.string.settings_off)
 
 /**
- * Flat text list of settings (docs/04-design.md §Ajustes). Only the Lectura section exists in the
- * MVP, with Acerca de at the end; Avisos, Contenido and Datos arrive with their phases. Changes
- * apply at once.
+ * Flat text list of settings (docs/04-design.md §Ajustes): Lectura, Contenido and Avisos, with
+ * Acerca de at the end; Datos arrives with its phase. Changes apply at once.
  *
  * @param settings values shown.
  * @param saveFailed shows that the last change could not be saved.
  * @param onChange receives each edit of the current settings.
+ * @param content the "Contenido" section, `null` until it is read.
+ * @param reminders the "Avisos" section, `null` until it is read.
  * @param onBack closes the screen.
  * @param onOpenAbout opens the version and licenses screen.
- * @param reminders the "Avisos" section, shown just before "Acerca de".
  */
-@Suppress("LongParameterList") // Inputs and section slots plus the Compose modifier.
+@Suppress("LongParameterList") // Seven inputs plus the conventional Compose modifier.
 @Composable
 fun SettingsContent(
     settings: ReadingSettings,
     saveFailed: Boolean,
     onChange: SettingsEdit,
+    content: ContentSettings?,
+    reminders: ReminderSettingsSectionState?,
     onBack: () -> Unit,
     onOpenAbout: () -> Unit,
     modifier: Modifier = Modifier,
-    reminders: @Composable () -> Unit = {},
 ) {
     Column(
         modifier =
@@ -109,7 +110,8 @@ fun SettingsContent(
         )
         if (saveFailed) MutedText(stringResource(R.string.settings_save_failed))
         ReadingSection(settings, onChange)
-        reminders()
+        ContentSettingsSection(content)
+        ReminderSettingsSection(reminders)
         Text(
             stringResource(R.string.settings_section_about),
             style = MaterialTheme.typography.titleMedium,

@@ -33,43 +33,51 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 /** Receives each edit of the current reminder settings. */
-internal typealias ReminderEdit = (ReminderSettings.() -> Result<ReminderSettings>) -> Unit
+typealias ReminderEdit = (ReminderSettings.() -> Result<ReminderSettings>) -> Unit
 
 /** Times as the user's locale writes them, e.g. "19:00". */
 private val shortTimeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
 
 /**
- * The "Avisos" section (RF-33/RF-34, docs/04-design.md §Ajustes) for [viewModel]'s settings;
- * nothing is shown until they are read from disk.
+ * What the "Avisos" settings section needs.
+ *
+ * @property settings values shown.
+ * @property saveFailed shows that the last change could not be saved.
+ * @property rejectedChange why the last change was refused, shown as a quiet note.
+ * @property onChange receives each edit; an invalid one must change nothing.
  */
+class ReminderSettingsSectionState(
+    val settings: ReminderSettings,
+    val saveFailed: Boolean,
+    val rejectedChange: ReminderSettingsError?,
+    val onChange: ReminderEdit,
+)
+
+/** @return what the "Avisos" section shows now, or `null` until it is read from disk. */
 @Composable
-fun ReminderSettingsSection(viewModel: ReminderSettingsViewModel) {
-    val settings by viewModel.settings.collectAsState()
-    val saveFailed by viewModel.saveFailed.collectAsState()
-    val rejectedChange by viewModel.rejectedChange.collectAsState()
-    settings?.let { loaded ->
-        ReminderSettingsContent(loaded, saveFailed, rejectedChange, viewModel::change)
+fun ReminderSettingsViewModel.reminderSettings(): ReminderSettingsSectionState? {
+    val loadedSettings by settings.collectAsState()
+    val lastSaveFailed by saveFailed.collectAsState()
+    val lastRejectedChange by rejectedChange.collectAsState()
+    return loadedSettings?.let { current ->
+        ReminderSettingsSectionState(current, lastSaveFailed, lastRejectedChange, ::change)
     }
 }
 
 /**
- * The global switch and, while reminders are on, how many a day, their times and the quiet
- * hours. A time is changed in place with a plain [TimeInput]; no dialog, no animation.
- *
- * @param saveFailed shows that the last change could not be saved.
- * @param rejectedChange why the last change was refused, shown as a quiet note.
- * @param onChange receives each edit; invalid ones come back as [rejectedChange].
+ * The "Avisos" section (RF-33/RF-34, docs/04-design.md §Ajustes): the global switch and, while
+ * reminders are on, how many a day, their times and the quiet hours. A time is changed in place
+ * with a plain [TimeInput]; no dialog, no animation. Nothing is shown while [reminders] is `null`
+ * (not read from disk yet).
  */
 @Composable
-internal fun ReminderSettingsContent(
-    settings: ReminderSettings,
-    saveFailed: Boolean,
-    rejectedChange: ReminderSettingsError?,
-    onChange: ReminderEdit,
-) {
+fun ReminderSettingsSection(reminders: ReminderSettingsSectionState?) {
+    if (reminders == null) return
+    val settings = reminders.settings
+    val onChange = reminders.onChange
     Text(stringResource(R.string.reminders_section), style = MaterialTheme.typography.titleMedium)
-    if (saveFailed) MutedText(stringResource(R.string.reminders_save_failed))
-    rejectedChange?.let { error -> MutedText(stringResource(messageOf(error))) }
+    if (reminders.saveFailed) MutedText(stringResource(R.string.reminders_save_failed))
+    reminders.rejectedChange?.let { error -> MutedText(stringResource(messageOf(error))) }
     ChoiceSetting(R.string.reminders_enabled, switchLabels, settings.enabled) { on ->
         onChange { edited(enabled = on) }
     }

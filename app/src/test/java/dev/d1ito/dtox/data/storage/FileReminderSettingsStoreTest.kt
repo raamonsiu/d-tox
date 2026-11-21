@@ -19,7 +19,6 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 import java.time.LocalTime
 
-/** The `"reminders"` section that [FileReadingSettingsStore] keeps in `settings.json`. */
 class FileReminderSettingsStoreTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
@@ -36,19 +35,19 @@ class FileReminderSettingsStoreTest {
 
     @Test
     fun missingFile_readsTheDefaults() {
-        assertEquals(ReminderSettings.Default, runBlocking { store().reminderSettings.first() })
+        assertEquals(ReminderSettings.Default, runBlocking { store().settings.first() })
     }
 
     @Test
     fun updatedReminders_persistForANewStore() {
-        runBlocking { store().updateReminders(customized) }.getOrThrow()
+        runBlocking { store().update(customized) }.getOrThrow()
 
-        assertEquals(customized, runBlocking { store().reminderSettings.first() })
+        assertEquals(customized, runBlocking { store().settings.first() })
     }
 
     @Test
     fun updatedReminders_areWrittenAsDocumented() {
-        runBlocking { store().updateReminders(customized) }.getOrThrow()
+        runBlocking { store().update(customized) }.getOrThrow()
 
         val written = Json.parseToJsonElement(settingsFile.readText()).jsonObject
         assertEquals("1", written.getValue("version").jsonPrimitive.content)
@@ -65,24 +64,27 @@ class FileReminderSettingsStoreTest {
 
     @Test
     fun readingAndReminderUpdates_keepEachOther() {
-        val store = store()
+        val sharedDocument = document()
         val reading = ReadingSettings.Default.edited(theme = ReadingTheme.SEPIA).getOrThrow()
 
         runBlocking {
-            store.updateReminders(customized).getOrThrow()
-            store.update(reading).getOrThrow()
+            store(sharedDocument).update(customized).getOrThrow()
+            FileReadingSettingsStore(sharedDocument).update(reading).getOrThrow()
         }
 
-        val reread = store()
-        assertEquals(customized, runBlocking { reread.reminderSettings.first() })
-        assertEquals(reading, runBlocking { reread.settings.first() })
+        val rereadDocument = document()
+        assertEquals(customized, runBlocking { store(rereadDocument).settings.first() })
+        assertEquals(
+            reading,
+            runBlocking { FileReadingSettingsStore(rereadDocument).settings.first() },
+        )
     }
 
     @Test
     fun update_keepsUnknownFieldsOfTheRemindersSection() {
         settingsFile.writeText("""{ "version": 1, "reminders": { "future": "x" } }""")
 
-        runBlocking { store().updateReminders(customized) }.getOrThrow()
+        runBlocking { store().update(customized) }.getOrThrow()
 
         val reminders = writtenReminders()
         assertEquals("x", reminders.getValue("future").jsonPrimitive.content)
@@ -98,7 +100,7 @@ class FileReminderSettingsStoreTest {
             """.trimIndent(),
         )
 
-        val read = runBlocking { store().reminderSettings.first() }
+        val read = runBlocking { store().settings.first() }
 
         val expected =
             ReminderSettings.Default
@@ -118,7 +120,7 @@ class FileReminderSettingsStoreTest {
             """.trimIndent(),
         )
 
-        val read = runBlocking { store().reminderSettings.first() }
+        val read = runBlocking { store().settings.first() }
 
         assertEquals((9..12).map { hour -> LocalTime.of(hour, 0) }, read.times)
     }
@@ -129,7 +131,7 @@ class FileReminderSettingsStoreTest {
             """{ "reminders": { "quietHours": { "start": "22:00", "end": "22:00" } } }""",
         )
 
-        val read = runBlocking { store().reminderSettings.first() }
+        val read = runBlocking { store().settings.first() }
 
         assertEquals(ReminderSettings.Default.quietHours, read.quietHours)
     }
@@ -141,10 +143,12 @@ class FileReminderSettingsStoreTest {
             .getValue("reminders")
             .jsonObject
 
-    private fun store() =
-        FileReadingSettingsStore(
+    private fun document() =
+        SettingsDocument(
             settingsFile = settingsFile,
             fileWriter = SyncedAtomicFileWriter(Dispatchers.Unconfined),
             ioDispatcher = Dispatchers.Unconfined,
         )
+
+    private fun store(document: SettingsDocument = document()) = FileReminderSettingsStore(document)
 }

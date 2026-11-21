@@ -19,14 +19,31 @@ import java.time.format.DateTimeParseException
 /** The user's reminder settings (RF-33/RF-34), shared by the settings screen and the scheduler. */
 interface ReminderSettingsStore {
     /** Current reminder settings, then every change; starts with the stored or default values. */
-    val reminderSettings: Flow<ReminderSettings>
+    val settings: Flow<ReminderSettings>
 
     /** @return success once [settings] are durably stored, or an [AtomicWriteError]. */
-    suspend fun updateReminders(settings: ReminderSettings): Result<Unit>
+    suspend fun update(settings: ReminderSettings): Result<Unit>
 }
 
 /** Section of `settings.json` with the reminder settings (docs/02-data-formats.md §5). */
-internal const val REMINDERS_SECTION = "reminders"
+private const val REMINDERS_SECTION = "reminders"
+
+/**
+ * Keeps the reminder settings in the `"reminders"` section of `settings.json`
+ * (docs/02-data-formats.md §5).
+ *
+ * @param document the settings file, shared with the stores of the other sections.
+ */
+class FileReminderSettingsStore(
+    document: SettingsDocument,
+) : ReminderSettingsStore {
+    private val section =
+        SettingsSection(document, REMINDERS_SECTION, ::reminderSettingsOf, ::reminderSettingsJson)
+
+    override val settings: Flow<ReminderSettings> = section.values
+
+    override suspend fun update(settings: ReminderSettings): Result<Unit> = section.update(settings)
+}
 
 /** Times are written as 24-hour `"HH:mm"`, e.g. `"19:00"`. */
 private val timeFormat = DateTimeFormatter.ofPattern("HH:mm")
@@ -55,26 +72,16 @@ internal fun reminderSettingsOf(section: JsonObject?): ReminderSettings {
     return ReminderSettings.create(enabled, usableTimes, quietHours).getOrDefault(defaults)
 }
 
-/**
- * The fields this section owns, ready to merge into `settings.json`.
- *
- * @param formatVersion the `settings.json` format version, written with every section.
- */
-internal fun reminderSettingsJson(
-    settings: ReminderSettings,
-    formatVersion: Int,
-): JsonObject =
+/** The fields of the reminders section this version owns. */
+internal fun reminderSettingsJson(settings: ReminderSettings): JsonObject =
     buildJsonObject {
-        put("version", formatVersion)
-        putJsonObject(REMINDERS_SECTION) {
-            put("enabled", settings.enabled)
-            putJsonArray("times") {
-                settings.times.forEach { time -> add(JsonPrimitive(time.format(timeFormat))) }
-            }
-            putJsonObject("quietHours") {
-                put("start", settings.quietHours.start.format(timeFormat))
-                put("end", settings.quietHours.end.format(timeFormat))
-            }
+        put("enabled", settings.enabled)
+        putJsonArray("times") {
+            settings.times.forEach { time -> add(JsonPrimitive(time.format(timeFormat))) }
+        }
+        putJsonObject("quietHours") {
+            put("start", settings.quietHours.start.format(timeFormat))
+            put("end", settings.quietHours.end.format(timeFormat))
         }
     }
 

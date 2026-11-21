@@ -30,7 +30,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 @RunWith(AndroidJUnit4::class)
-class ReminderSettingsContentTest {
+class ReminderSettingsSectionTest {
     @get:Rule
     val composeRule = createComposeRule()
 
@@ -51,10 +51,12 @@ class ReminderSettingsContentTest {
         composeRule.setContent {
             DTOXTheme {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
-                    ReminderSettingsContent(settings, saveFailed = false, rejectedChange) { edit ->
-                        receivedEdits++
-                        settings.edit().onSuccess { edited -> settings = edited }
-                    }
+                    ReminderSettingsSection(
+                        ReminderSettingsSectionState(settings, false, rejectedChange) { edit ->
+                            receivedEdits++
+                            settings.edit().onSuccess { edited -> settings = edited }
+                        },
+                    )
                 }
             }
         }

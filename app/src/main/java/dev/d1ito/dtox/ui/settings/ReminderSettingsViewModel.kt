@@ -31,7 +31,7 @@ class ReminderSettingsViewModel(
 ) : ViewModel(scope) {
     /** Current settings; `null` until they are read from disk. */
     val settings: StateFlow<ReminderSettings?> =
-        store.reminderSettings.stateIn(scope, SharingStarted.Eagerly, initialValue = null)
+        store.settings.stateIn(scope, SharingStarted.Eagerly, initialValue = null)
 
     private val mutableSaveFailed = MutableStateFlow(false)
     private val mutableRejectedChange = MutableStateFlow<ReminderSettingsError?>(null)
@@ -51,7 +51,7 @@ class ReminderSettingsViewModel(
         result
             .onSuccess { edited ->
                 mutableRejectedChange.value = null
-                scope.launch { mutableSaveFailed.value = store.updateReminders(edited).isFailure }
+                scope.launch { mutableSaveFailed.value = store.update(edited).isFailure }
             }.onFailure { error -> mutableRejectedChange.value = error as? ReminderSettingsError }
     }
 

@@ -28,7 +28,7 @@ class ReminderSettingsViewModelTest {
     fun change_isSavedAndShownAtOnce() {
         viewModel.change { edited(enabled = true) }
 
-        assertTrue(store.reminderSettings.value.enabled)
+        assertTrue(store.settings.value.enabled)
         assertEquals(true, viewModel.settings.value?.enabled)
         assertFalse(viewModel.saveFailed.value)
     }
@@ -49,7 +49,7 @@ class ReminderSettingsViewModelTest {
         viewModel.change { withTimeChanged(index = 0, time = LocalTime.of(20, 0)) }
 
         assertNull(viewModel.rejectedChange.value)
-        assertEquals(listOf(LocalTime.of(20, 0)), store.reminderSettings.value.times)
+        assertEquals(listOf(LocalTime.of(20, 0)), store.settings.value.times)
     }
 
     @Test
@@ -64,14 +64,14 @@ class ReminderSettingsViewModelTest {
     }
 
     private class InMemoryReminderSettingsStore : ReminderSettingsStore {
-        override val reminderSettings: StateFlow<ReminderSettings>
+        override val settings: StateFlow<ReminderSettings>
             get() = current
 
         private val current = MutableStateFlow(ReminderSettings.Default)
         var failUpdates = false
         var updates = 0
 
-        override suspend fun updateReminders(settings: ReminderSettings): Result<Unit> {
+        override suspend fun update(settings: ReminderSettings): Result<Unit> {
             updates++
             if (failUpdates) return Result.failure(IOException("disk full"))
             current.value = settings
