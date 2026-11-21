@@ -209,3 +209,18 @@ Lecturas descargadas y estado de lectura en el dispositivo (D-36: una lectura si
 ## 7. Caché de índice de biblioteca (derivada)
 
 Archivo `files/library-index.json` (D-34), escrito de forma atómica: `{ "version": 1, "books": [{ "bookId", "title", "author", "file", "lastOpenedAt", "finished" }] }`. Es una caché: si falta, está corrupto o es de una versión más nueva, se reconstruye desde `files/library/<hex>.<ext>` y `files/books/<bookId>.json`.
+
+## 8. Carpetas vigiladas
+
+Archivo `files/watched-folders.json` (RF-05), escrito de forma atómica. Aparte de `settings.json` porque los URI llevan nombres de carpetas del usuario (§5 no contiene datos personales).
+
+```json
+{
+  "version": 1,
+  "folders": ["content://com.android.externalstorage.documents/tree/primary%3ABooks"]
+}
+```
+
+- `folders`: URI de árbol SAF tal como los devuelve `ACTION_OPEN_DOCUMENT_TREE`, sin repetir y en el orden en que se añadieron. El nombre que se muestra sale del propio URI.
+- Una carpeta está en la lista mientras la app conserva su permiso persistente de lectura (`takePersistableUriPermission`): al añadirla se toma el permiso antes de guardarla (si no se puede guardar, se libera); al quitarla se guarda la lista y luego se libera el permiso. Quitarla no toca sus archivos.
+- Si falta, está corrupto o no se puede leer, la lista empieza vacía (los ajustes nunca bloquean la app); las entradas que no son texto se descartan. El siguiente cambio reescribe el archivo.
