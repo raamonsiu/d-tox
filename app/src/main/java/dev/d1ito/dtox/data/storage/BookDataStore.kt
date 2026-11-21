@@ -2,6 +2,8 @@ package dev.d1ito.dtox.data.storage
 
 import dev.d1ito.dtox.domain.BookIdentifier
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
@@ -24,12 +26,27 @@ interface BookDataStore {
 
     /** @return success once [bookData] is durably stored, or an [AtomicWriteError]. */
     suspend fun write(bookData: BookData): Result<Unit>
+
+    /**
+     * Reads, changes and writes the data of one book as a single step: updates and writes run one
+     * after another, so a change made by one writer (e.g. progress) never overwrites another's
+     * (e.g. annotations).
+     *
+     * @param transform gets the stored data as [read] returns it (`null` when there is none) and
+     *   returns the new data for the same book, or a failure to leave the file untouched.
+     * @return the written data, or the failure of the read, of [transform] or of the write.
+     */
+    suspend fun update(
+        bookIdentifier: BookIdentifier,
+        transform: (BookData?) -> Result<BookData>,
+    ): Result<BookData>
 }
 
 /**
  * Stores each book as `<booksDirectory>/<bookId>.json` (docs/02-data-formats.md §4), written
  * atomically. A corrupt file is renamed to `<bookId>.json.<epochMillis>.corrupt`, keeping it for
- * inspection without blocking the book.
+ * inspection without blocking the book. Reads, writes and updates of one instance are serialized,
+ * so the app keeps a single instance.
  *
  * @param booksDirectory e.g. `files/books`; created on the first write.
  * @param clock timestamps the names of set-aside corrupt files.
@@ -41,7 +58,28 @@ class FileBookDataStore(
     private val ioDispatcher: CoroutineDispatcher,
     private val clock: Clock = Clock.systemUTC(),
 ) : BookDataStore {
+    private val fileLock = Mutex()
+
     override suspend fun read(bookIdentifier: BookIdentifier): Result<BookData?> =
+        fileLock.withLock { readUnlocked(bookIdentifier) }
+
+    override suspend fun write(bookData: BookData): Result<Unit> =
+        fileLock.withLock { writeUnlocked(bookData) }
+
+    override suspend fun update(
+        bookIdentifier: BookIdentifier,
+        transform: (BookData?) -> Result<BookData>,
+    ): Result<BookData> =
+        fileLock.withLock {
+            val stored =
+                readUnlocked(bookIdentifier).getOrElse { failure ->
+                    return Result.failure(failure)
+                }
+            val updated = transform(stored).getOrElse { failure -> return Result.failure(failure) }
+            writeUnlocked(updated).map { updated }
+        }
+
+    private suspend fun readUnlocked(bookIdentifier: BookIdentifier): Result<BookData?> =
         withContext(ioDispatcher) {
             val dataFile = dataFileOf(bookIdentifier)
             try {
@@ -51,7 +89,7 @@ class FileBookDataStore(
             }
         }
 
-    override suspend fun write(bookData: BookData): Result<Unit> =
+    private suspend fun writeUnlocked(bookData: BookData): Result<Unit> =
         fileWriter.write(
             dataFileOf(bookData.bookIdentifier),
             BookDataFormat.encode(bookData).toByteArray(Charsets.UTF_8),

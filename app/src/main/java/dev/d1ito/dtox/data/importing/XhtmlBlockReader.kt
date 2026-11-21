@@ -10,6 +10,13 @@ private const val DROPPED_ELEMENTS =
     "script, style, noscript, template, img, picture, svg, math, video, audio, canvas, " +
         "object, embed, iframe, table, form, button, input, select, textarea"
 
+/** Tokens that mark where a printed page began (EPUB 3 structural semantics, DPUB-ARIA). */
+private const val PAGE_BREAK_EPUB_TYPE = "pagebreak"
+private const val PAGE_BREAK_ROLE = "doc-pagebreak"
+
+/** Separator of token-list attributes such as `epub:type` and `role`. */
+private val attributeTokenSeparator = Regex("\\s+")
+
 /** XHTML heading level → model level; levels below 3 read as 3. */
 private val headingLevels =
     mapOf("h1" to 1, "h2" to 2, "h3" to 3, "h4" to 3, "h5" to 3, "h6" to 3)
@@ -49,7 +56,8 @@ private val containerTags =
  *
  * Parsing is lenient (jsoup's HTML parser), so malformed markup and HTML entities undefined in
  * XML still read. Nothing is executed: scripts, styles, images, tables and forms are removed
- * before reading, and inline markup is reduced to its text. `h1`–`h6` become headings 1..3,
+ * before reading, as are printed page-break markers (their page numbers are not reading text),
+ * and inline markup is reduced to its text. `h1`–`h6` become headings 1..3,
  * `p`/`pre` paragraphs, `blockquote` a quote, `ul`/`ol` list items with their nesting depth and
  * `hr` a separator. Loose text inside wrappers such as `div` becomes paragraphs, and inline
  * elements that end up wrapping blocks (misnested or self-closed `a`) are read as wrappers.
@@ -58,6 +66,7 @@ object XhtmlBlockReader : TextBlockReader {
     override fun read(text: String): List<Block> {
         val body = Jsoup.parse(text).body()
         body.select(DROPPED_ELEMENTS).remove()
+        body.getAllElements().filter(Element::isPageBreakMarker).forEach(Element::remove)
         return BlockCollector().apply { addContainer(body) }.blocks.toList()
     }
 }
@@ -137,6 +146,19 @@ private class BlockCollector {
         textOf(inlineNodes)?.let { text -> blocks += Block.Paragraph(text) }
     }
 }
+
+/**
+ * Whether the element marks a printed page boundary (`epub:type` or `role` holding the page-break
+ * token, e.g. `<span epub:type="pagebreak" title="169">169</span>`).
+ */
+private fun Element.isPageBreakMarker(): Boolean =
+    hasToken("epub:type", PAGE_BREAK_EPUB_TYPE) || hasToken("role", PAGE_BREAK_ROLE)
+
+/** Whether the space-separated token list in [attributeName] contains [token] as a whole word. */
+private fun Element.hasToken(
+    attributeName: String,
+    token: String,
+): Boolean = token in attr(attributeName).split(attributeTokenSeparator)
 
 private fun Element.isBlockLevel(): Boolean {
     val tag = normalName()
