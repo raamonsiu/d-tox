@@ -118,8 +118,9 @@ private data class FeedDocument(
     }
 }
 
+/** One feed item as JSON; also the item shape of the local cache (docs/02-data-formats.md §6). */
 @Serializable
-private data class ItemDocument(
+internal data class ItemDocument(
     val id: String,
     val title: String,
     val author: String? = null,
@@ -158,10 +159,29 @@ private data class ItemDocument(
             publishedAt = dateOf(publishedAt, LocalDate::parse),
         )
     }
+
+    companion object {
+        fun from(item: ShortRead): ItemDocument =
+            ItemDocument(
+                id = item.id,
+                title = item.title,
+                author = item.author,
+                category = item.category.value,
+                tags = item.tags,
+                minutes = item.minutes,
+                words = item.words,
+                license = item.license,
+                source = SourceDocument(item.source.name, item.source.url),
+                translator = item.translator,
+                path = item.path,
+                sha256 = item.sha256,
+                publishedAt = item.publishedAt.toString(),
+            )
+    }
 }
 
 @Serializable
-private data class SourceDocument(
+internal data class SourceDocument(
     val name: String,
     val url: String,
 )

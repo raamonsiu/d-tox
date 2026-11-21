@@ -171,6 +171,44 @@ Feed estático servido por HTTPS (p. ej. GitHub Pages). Detalle del pipeline en 
 
 Markdown simple con _front matter_ opcional y el cuerpo usando solo `#`, `##`, párrafos, citas `>` y listas. Se convierte al modelo de documento (§1) con el mismo pipeline que un libro de una sola capa.
 
+### Caché local (`files/shortreads/`)
+
+Lecturas descargadas y estado de lectura en el dispositivo (D-36: una lectura sigue en la caché hasta leerse o retirarse).
+
+- `items/<id>.md`: cuerpo de cada lectura cacheada no leída, tal como llega del feed. Solo se cachean ids válidos como nombre de archivo (`[A-Za-z0-9][A-Za-z0-9._-]*`).
+- `state.json`, escrito de forma atómica:
+
+```json
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "seneca-cartas-lucilio-001",
+      "title": "Sobre el buen uso del tiempo",
+      "author": "Séneca",
+      "category": "filosofia",
+      "tags": ["estoicismo", "tiempo"],
+      "minutes": 8,
+      "words": 1850,
+      "license": "PD",
+      "source": { "name": "Wikisource", "url": "https://es.wikisource.org/…" },
+      "translator": "…",
+      "path": "items/seneca-cartas-lucilio-001.md",
+      "sha256": "…",
+      "publishedAt": "2026-10-10"
+    }
+  ],
+  "readIds": ["epicteto-enquiridion-001"]
+}
+```
+
+- `items`: lecturas cacheadas sin leer, en el orden del feed y con la misma forma que en `index.json`. Cada una tiene su cuerpo en `items/<id>.md`.
+- `readIds`: ids marcados como leídos. **No se borran nunca**, tampoco cuando la lectura sale del feed, para que una lectura retirada que vuelva no se repita (unos 30 bytes por lectura).
+- Marcar como leída: añade el id a `readIds`, quita la lectura de `items` y borra su cuerpo.
+- Sincronización (sin red: recibe el `index.json` ya parseado y los cuerpos ya descargados): guarda los cuerpos nuevos de lecturas no leídas (un `sha256` distinto sustituye la versión cacheada), conserva las cacheadas que siguen en el feed y **borra las que ya no están** (retirada, [05-content-sources.md](05-content-sources.md)).
+- Orden de escritura: primero los cuerpos nuevos, luego `state.json` y al final se borran los cuerpos que ya no lista. Así `state.json` nunca apunta a un cuerpo que falte; los archivos sobrantes tras un fallo se borran en la siguiente sincronización.
+- Un `state.json` corrupto se aparta como `state.json.corrupt` y la caché empieza vacía. Uno de otra versión no se toca y la caché falla con error hasta actualizar la app.
+
 ## 7. Caché de índice de biblioteca (derivada)
 
 Archivo `files/library-index.json` (D-34), escrito de forma atómica: `{ "version": 1, "books": [{ "bookId", "title", "author", "file", "lastOpenedAt", "finished" }] }`. Es una caché: si falta, está corrupto o es de una versión más nueva, se reconstruye desde `files/library/<hex>.<ext>` y `files/books/<bookId>.json`.

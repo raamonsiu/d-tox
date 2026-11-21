@@ -90,6 +90,33 @@ class FileBookDataStoreTest {
         assertEquals(true, runBlocking { store.read(identifier) }.getOrThrow()?.progress?.finished)
     }
 
+    @Test
+    fun update_changesTheStoredData() {
+        runBlocking { store.write(sampleBookData()) }.getOrThrow()
+
+        val updated =
+            runBlocking {
+                store.update(identifier) { stored ->
+                    Result.success(requireNotNull(stored).copy(title = "Cartas"))
+                }
+            }.getOrThrow()
+
+        assertEquals("Cartas", updated.title)
+        assertEquals("Cartas", runBlocking { store.read(identifier) }.getOrThrow()?.title)
+    }
+
+    @Test
+    fun failedTransform_leavesTheFileUntouched() {
+        runBlocking { store.write(sampleBookData()) }.getOrThrow()
+        val before = dataFile.readText()
+        val rejection = IllegalStateException("rejected")
+
+        val result = runBlocking { store.update(identifier) { Result.failure(rejection) } }
+
+        assertEquals(rejection, result.exceptionOrNull())
+        assertEquals(before, dataFile.readText())
+    }
+
     private fun sampleBookData(): BookData =
         BookData(
             bookIdentifier = identifier,

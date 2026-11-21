@@ -32,4 +32,13 @@ internal class InMemoryBookDataStore(
         writes += bookData
         return Result.success(Unit)
     }
+
+    override suspend fun update(
+        bookIdentifier: BookIdentifier,
+        transform: (BookData?) -> Result<BookData>,
+    ): Result<BookData> {
+        val stored = read(bookIdentifier).getOrElse { failure -> return Result.failure(failure) }
+        val updated = transform(stored).getOrElse { failure -> return Result.failure(failure) }
+        return write(updated).map { updated }
+    }
 }
