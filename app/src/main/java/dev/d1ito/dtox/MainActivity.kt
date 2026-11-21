@@ -27,6 +27,7 @@ import dev.d1ito.dtox.domain.ReadingSettings
 import dev.d1ito.dtox.domain.ReadingTheme
 import dev.d1ito.dtox.ui.library.LibraryScreen
 import dev.d1ito.dtox.ui.library.LibraryViewModel
+import dev.d1ito.dtox.ui.reader.BookSearchScreen
 import dev.d1ito.dtox.ui.reader.ChapterList
 import dev.d1ito.dtox.ui.reader.ReaderControlActions
 import dev.d1ito.dtox.ui.reader.ReaderControlsBar
@@ -171,7 +172,8 @@ private fun Settings(
  * What the reader needs besides its state.
  *
  * @property settings current reading settings.
- * @property paginationDispatcher where pages are measured; never the main thread.
+ * @property paginationDispatcher where pages are measured and the book is searched; never the
+ *   main thread.
  * @property onOpenSettings opens the settings screen from the controls bar.
  */
 private class ReadingSetup(
@@ -193,7 +195,10 @@ private fun Reader(
     }
 }
 
-/** The pages with their controls bar, or the chapter list the bar opens; back closes the list. */
+/**
+ * The pages with their controls bar, or the chapter list or the search the bar opens; back
+ * closes the list or the search.
+ */
 @Composable
 private fun ReadingWithControls(
     state: ReaderUiState.Reading,
@@ -201,7 +206,18 @@ private fun ReadingWithControls(
     setup: ReadingSetup,
 ) {
     var chaptersVisible by rememberSaveable { mutableStateOf(false) }
-    if (chaptersVisible) {
+    var searchVisible by rememberSaveable { mutableStateOf(false) }
+    if (searchVisible) {
+        BackHandler { searchVisible = false }
+        BookSearchScreen(
+            book = state.book,
+            searchDispatcher = setup.paginationDispatcher,
+            onSelect = { anchor ->
+                searchVisible = false
+                viewModel.onSearchResultSelected(anchor)
+            },
+        )
+    } else if (chaptersVisible) {
         BackHandler { chaptersVisible = false }
         ChapterList(
             chapters = state.book.chapters,
@@ -212,7 +228,9 @@ private fun ReadingWithControls(
             },
         )
     } else {
-        PagesWithControls(state, viewModel, setup) { chaptersVisible = true }
+        PagesWithControls(state, viewModel, setup, { searchVisible = true }) {
+            chaptersVisible = true
+        }
     }
 }
 
@@ -231,11 +249,13 @@ private fun readingPositionOf(
     )
 
 /** The pages, and the controls bar a tap in the center shows; turning a page hides it. */
+@Suppress("LongParameterList") // The state and its owners, plus the two screens the bar opens.
 @Composable
 private fun PagesWithControls(
     state: ReaderUiState.Reading,
     viewModel: ReaderViewModel,
     setup: ReadingSetup,
+    onOpenSearch: () -> Unit,
     onOpenChapters: () -> Unit,
 ) {
     var controlsVisible by remember { mutableStateOf(false) }
@@ -255,6 +275,7 @@ private fun PagesWithControls(
                     onBack = viewModel::close,
                     onChapters = onOpenChapters,
                     onTextSettings = setup.onOpenSettings,
+                    onSearch = onOpenSearch,
                 ),
             onHide = { controlsVisible = false },
         )

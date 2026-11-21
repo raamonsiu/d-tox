@@ -41,11 +41,13 @@ private val minimumTouchTarget = 48.dp
  * @property onBack closes the book and returns to the library.
  * @property onChapters opens the chapter list.
  * @property onTextSettings opens the text settings.
+ * @property onSearch opens the search inside the book.
  */
 class ReaderControlActions(
     val onBack: () -> Unit,
     val onChapters: (() -> Unit)? = null,
     val onTextSettings: (() -> Unit)? = null,
+    val onSearch: (() -> Unit)? = null,
 )
 
 /**
@@ -78,19 +80,31 @@ fun ReaderControlsBar(
                 .pointerInput(Unit) { detectTapGestures {} }
                 .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = barHorizontalPadding),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            ControlButton(R.string.reader_controls_back, actions.onBack, onHide)
-            actions.onChapters?.let { open ->
-                ControlButton(R.string.reader_controls_chapters, open, onHide)
-            }
-            actions.onTextSettings?.let { open ->
-                ControlButton(R.string.reader_controls_text, open, onHide)
-            }
-        }
+        ControlButtons(actions, onHide)
         HorizontalDivider(color = DTOXTheme.palette.divider)
+    }
+}
+
+/** The bar's buttons in one row: back, then only the actions there are. */
+@Composable
+private fun ControlButtons(
+    actions: ReaderControlActions,
+    onHide: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = barHorizontalPadding),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        ControlButton(R.string.reader_controls_back, actions.onBack, onHide)
+        actions.onChapters?.let { open ->
+            ControlButton(R.string.reader_controls_chapters, open, onHide)
+        }
+        actions.onTextSettings?.let { open ->
+            ControlButton(R.string.reader_controls_text, open, onHide)
+        }
+        actions.onSearch?.let { open ->
+            ControlButton(R.string.reader_controls_search, open, onHide)
+        }
     }
 }
 

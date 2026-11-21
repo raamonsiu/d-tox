@@ -1,0 +1,7 @@
+<resources>
+    <string name="reader_controls_search">Buscar</string>
+    <string name="search_title">Buscar en el libro</string>
+    <string name="search_field_hint">Palabra o frase</string>
+    <string name="search_no_results">Sin resultados.</string>
+    <string name="search_results_capped">Se muestran los primeros %1$d resultados.</string>
+</resources>
