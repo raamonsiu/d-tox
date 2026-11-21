@@ -58,6 +58,7 @@ Ratio WCAG 2 (luminancia relativa sRGB). AA ≥ 4.5:1 y AAA ≥ 7:1 para texto n
 | Interfaz (menús, ajustes)       | La misma fuente de lectura elegida                                 |          | Una sola familia en toda la app                                                       |
 
 - Tamaño de texto: 14–28 sp, por defecto 18 sp; interlineado 1.5–1.7; alineación a la izquierda (sin justificar, para evitar "ríos" y espacios irregulares).
+- El interlineado nunca baja de la altura propia de la fuente: OpenDyslexic pide 1,82, así que con ella se lee siempre a 1,82 (si no, sus trazos altos se solaparían y la página medida no coincidiría con la dibujada).
 - Se empaquetan los archivos de fuente y se incluye un aviso de licencias dentro de la app.
 
 ### Jerarquía tipo Markdown

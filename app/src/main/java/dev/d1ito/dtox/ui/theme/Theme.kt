@@ -9,24 +9,29 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import dev.d1ito.dtox.domain.ReadingFont
 import dev.d1ito.dtox.domain.ReadingTheme
 
 private val LocalReadingPalette = staticCompositionLocalOf { ReadingPalettes.Paper }
 
 /**
- * Applies the D-TOX theme: a [ReadingPalette] plus the reading [Typography].
+ * Applies the D-TOX theme: a [ReadingPalette] plus the reading typography in one font family.
  *
  * @param palette theme to apply, usually [readingPaletteFor] the user's choice; by default it
  *   follows the system light/dark mode (paper/night).
+ * @param font typeface of every text, reader and interface (RF-14); Libron by default.
  * @param content UI drawn with the theme.
  */
 @Composable
 fun DTOXTheme(
     palette: ReadingPalette = systemReadingPalette(),
+    font: ReadingFont = ReadingFont.LIBRON,
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(colorScheme = palette.toColorScheme(), typography = Typography) {
+    val typography = remember(font) { typographyOf(fontFamilyOf(font)) }
+    MaterialTheme(colorScheme = palette.toColorScheme(), typography = typography) {
         // Text without an explicit color takes the palette's text color, not Material's default
         // black (screens have no Surface to provide it), so titles stay readable in Night.
         CompositionLocalProvider(
