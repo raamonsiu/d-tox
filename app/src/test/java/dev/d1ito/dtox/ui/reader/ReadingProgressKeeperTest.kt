@@ -5,8 +5,11 @@ import dev.d1ito.dtox.data.storage.BookDataFormatError
 import dev.d1ito.dtox.data.storage.BookSource
 import dev.d1ito.dtox.data.storage.ReadingProgress
 import dev.d1ito.dtox.domain.Anchor
+import dev.d1ito.dtox.domain.AnnotationIdentifier
+import dev.d1ito.dtox.domain.AnnotationMetadata
 import dev.d1ito.dtox.domain.Block
 import dev.d1ito.dtox.domain.Book
+import dev.d1ito.dtox.domain.BookAnnotation
 import dev.d1ito.dtox.domain.BookIdentifier
 import dev.d1ito.dtox.domain.BookMetadata
 import dev.d1ito.dtox.domain.Chapter
@@ -109,6 +112,30 @@ class ReadingProgressKeeperTest {
         keeper.flush()
 
         assertTrue(store.writes.isEmpty())
+    }
+
+    @Test
+    fun save_keepsAnnotationsStoredAfterOpening() {
+        val store = InMemoryBookDataStore(listOf(bookData(anchor(0))))
+        val keeper = keeper(store)
+        runBlocking { keeper.open(book, "libro.md") }
+        val bookmark =
+            BookAnnotation.Bookmark(
+                AnnotationMetadata(AnnotationIdentifier.random(), NOW, NOW),
+                anchor(20),
+            )
+        runBlocking {
+            store.update(book.identifier) { stored ->
+                Result.success(requireNotNull(stored).copy(annotations = listOf(bookmark)))
+            }
+        }
+
+        keeper.onPositionChanged(anchor(10))
+        keeper.flush()
+
+        val saved = store.writes.last()
+        assertEquals(anchor(10), saved.progress?.anchor)
+        assertEquals(listOf(bookmark), saved.annotations)
     }
 
     private fun keeper(store: InMemoryBookDataStore) =
