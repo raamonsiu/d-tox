@@ -17,7 +17,8 @@ import kotlinx.serialization.json.Json
  * different chapter splitting…), so caches written by an older app are parsed again.
  */
 object ParsedBookFormat {
-    const val VERSION = 1
+    /** 2: EPUB documents split at the elements their table of contents links (#179). */
+    const val VERSION = 2
 
     private val json = Json { ignoreUnknownKeys = false }
 

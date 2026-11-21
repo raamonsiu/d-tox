@@ -72,7 +72,11 @@ class ParsedBookCacheTest {
         val unusableContents =
             mapOf(
                 "corrupt" to "{ not json",
-                "another version" to validText.replace("\"version\":1", "\"version\":2"),
+                "another version" to
+                    validText.replace(
+                        "\"version\":${ParsedBookFormat.VERSION}",
+                        "\"version\":${ParsedBookFormat.VERSION + 1}",
+                    ),
                 "invalid heading level" to validText.replace("\"level\":1", "\"level\":7"),
                 "unknown block type" to validText.replace("\"separator\"", "\"table\""),
                 "another book's content" to ParsedBookFormat.encode(sampleBook(OTHER_HEX)),

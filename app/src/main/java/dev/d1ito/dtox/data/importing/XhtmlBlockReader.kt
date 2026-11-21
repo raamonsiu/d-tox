@@ -55,16 +55,38 @@ private val containerTags =
  * elements that end up wrapping blocks (misnested or self-closed `a`) are read as wrappers.
  */
 object XhtmlBlockReader : TextBlockReader {
-    override fun read(text: String): List<Block> {
+    override fun read(text: String): List<Block> = readDocument(text).blocks
+
+    /** Like [read], also telling at which block each element `id` starts (TOC fragments). */
+    fun readDocument(text: String): XhtmlDocumentBlocks {
         val body = Jsoup.parse(text).body()
         body.select(DROPPED_ELEMENTS).remove()
-        return BlockCollector().apply { addContainer(body) }.blocks.toList()
+        val collector = BlockCollector().apply { addContainer(body) }
+        return XhtmlDocumentBlocks(
+            collector.blocks.toList(),
+            collector.blockIndexByElementIdentifier.toMap(),
+        )
     }
 }
+
+/**
+ * The blocks of one XHTML document and where its identified elements start.
+ *
+ * @property blocks in reading order.
+ * @property blockIndexByElementIdentifier element `id` → index in [blocks] of the first block read
+ *   at or after that element; `blocks.size` when nothing readable follows it. An `id` inside a
+ *   heading, paragraph, quote or list maps to that whole block (or list); when an `id` repeats,
+ *   the first element wins.
+ */
+data class XhtmlDocumentBlocks(
+    val blocks: List<Block>,
+    val blockIndexByElementIdentifier: Map<String, Int>,
+)
 
 /** Accumulates blocks while walking the element tree in reading order. */
 private class BlockCollector {
     val blocks = mutableListOf<Block>()
+    val blockIndexByElementIdentifier = mutableMapOf<String, Int>()
 
     /** Reads block children in order; runs of inline content between them become paragraphs. */
     fun addContainer(container: Element) {
@@ -83,6 +105,7 @@ private class BlockCollector {
 
     private fun addBlock(element: Element) {
         val tag = element.normalName()
+        recordIdentifiersOf(element)
         val headingLevel = headingLevels[tag]
         when {
             headingLevel != null -> addHeading(headingLevel, element)
@@ -134,9 +157,33 @@ private class BlockCollector {
     }
 
     private fun addParagraphOf(inlineNodes: List<Node>) {
+        recordIdentifiers(
+            inlineNodes.filterIsInstance<Element>().flatMap(Element::identifiedElements),
+        )
         textOf(inlineNodes)?.let { text -> blocks += Block.Paragraph(text) }
     }
+
+    /**
+     * Records the `id`s that start at [element], about to be read as a block: its own for a
+     * wrapper, whose children are visited next; also its descendants' for a block read whole.
+     */
+    private fun recordIdentifiersOf(element: Element) {
+        val isReadAsWrapper = element.normalName() in containerTags || !element.isBlockLevel()
+        recordIdentifiers(if (isReadAsWrapper) listOf(element) else element.identifiedElements())
+    }
+
+    /** Maps the `id` of each element to the next block; earlier positions are kept. */
+    private fun recordIdentifiers(elements: List<Element>) {
+        elements.forEach { element ->
+            element.id().takeIf(String::isNotEmpty)?.let { identifier ->
+                blockIndexByElementIdentifier.putIfAbsent(identifier, blocks.size)
+            }
+        }
+    }
 }
+
+/** This element and its descendants that have an `id` attribute, in document order. */
+private fun Element.identifiedElements(): List<Element> = getElementsByAttribute("id")
 
 private fun Element.isBlockLevel(): Boolean {
     val tag = normalName()
