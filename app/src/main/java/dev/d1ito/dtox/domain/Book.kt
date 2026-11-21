@@ -73,3 +73,17 @@ data class Chapter private constructor(
                 ?: Result.success(Chapter(index, title, blocks.toList()))
     }
 }
+
+/**
+ * Up to [ANCHOR_QUOTE_LENGTH] characters of the text of [block] starting at [offset], or `null`
+ * when the position has no text.
+ */
+fun Chapter.quoteAt(
+    block: Int,
+    offset: Int,
+): String? =
+    blocks
+        .getOrNull(block)
+        ?.textOrNull
+        ?.takeIf { text -> offset in 0..text.lastIndex }
+        ?.let { text -> text.substring(offset, minOf(text.length, offset + ANCHOR_QUOTE_LENGTH)) }

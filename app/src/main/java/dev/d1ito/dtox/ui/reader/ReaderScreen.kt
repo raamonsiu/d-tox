@@ -242,7 +242,7 @@ private fun PageAt(
     pageIndex: Int,
 ) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        PageContent(
+        SelectablePageContent(
             paginated.pages[pageIndex],
             paginated.chapter,
             paginated.styles,
