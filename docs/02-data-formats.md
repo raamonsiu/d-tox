@@ -128,6 +128,9 @@ Reglas:
 
 `files/settings.json` (o DataStore). Incluye tipografía, tema, animación, avisos, categorías, duraciones, horario de silencio. No contiene datos personales.
 
+- Un objeto `{ "version": 1, ... }` con una sección por grupo de ajustes; todas las secciones comparten un único archivo y una única escritura atómica, que conserva las demás secciones y los campos desconocidos. Un valor ausente o inválido toma su valor por defecto.
+- `content` (RF-32): `{ "categories": ["filosofia", "ciencia"], "durations": [5, 10, 20] }`, con los valores del feed (§6). Por defecto, todas; siempre queda al menos una categoría y una duración elegidas, y una lista vacía o sin valores conocidos se lee como la de por defecto.
+
 ## 6. Feed de lecturas cortas
 
 Feed estático servido por HTTPS (p. ej. GitHub Pages). Detalle del pipeline en [05-content-sources.md](05-content-sources.md).

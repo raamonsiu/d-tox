@@ -69,22 +69,23 @@ private val marginLabels =
 private val switchLabels = listOf(true to R.string.settings_on, false to R.string.settings_off)
 
 /**
- * Flat text list of settings (docs/04-design.md §Ajustes). Only the Lectura section exists in the
- * MVP, with Acerca de at the end; Avisos, Contenido and Datos arrive with their phases. Changes
- * apply at once.
+ * Flat text list of settings (docs/04-design.md §Ajustes): Lectura and Contenido, with Acerca de at
+ * the end; Avisos and Datos arrive with their phases. Changes apply at once.
  *
  * @param settings values shown.
  * @param saveFailed shows that the last change could not be saved.
  * @param onChange receives each edit of the current settings.
+ * @param content the "Contenido" section, `null` until it is read.
  * @param onBack closes the screen.
  * @param onOpenAbout opens the version and licenses screen.
  */
-@Suppress("LongParameterList") // Five inputs plus the conventional Compose modifier.
+@Suppress("LongParameterList") // Six inputs plus the conventional Compose modifier.
 @Composable
 fun SettingsContent(
     settings: ReadingSettings,
     saveFailed: Boolean,
     onChange: SettingsEdit,
+    content: ContentSettings?,
     onBack: () -> Unit,
     onOpenAbout: () -> Unit,
     modifier: Modifier = Modifier,
@@ -107,6 +108,7 @@ fun SettingsContent(
         )
         if (saveFailed) MutedText(stringResource(R.string.settings_save_failed))
         ReadingSection(settings, onChange)
+        ContentSettingsSection(content)
         Text(
             stringResource(R.string.settings_section_about),
             style = MaterialTheme.typography.titleMedium,

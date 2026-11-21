@@ -47,6 +47,7 @@ class SettingsContentTest {
                     settings = settings,
                     saveFailed = saveFailed,
                     onChange = { edit -> settings = settings.edit().getOrThrow() },
+                    content = null,
                     onBack = { backPresses++ },
                     onOpenAbout = { aboutOpenings++ },
                 )
