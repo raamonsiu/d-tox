@@ -25,10 +25,7 @@ fun Book.quoteAt(
     chapter: Int,
     block: Int,
     offset: Int,
-): String? =
-    textAt(chapter, block)
-        ?.takeIf { text -> offset in 0..text.lastIndex }
-        ?.let { text -> text.substring(offset, minOf(text.length, offset + ANCHOR_QUOTE_LENGTH)) }
+): String? = chapters.getOrNull(chapter)?.quoteAt(block, offset)
 
 /**
  * Finds where [anchor] points in this book after the extracted text may have changed
