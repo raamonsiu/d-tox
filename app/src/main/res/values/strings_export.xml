@@ -1,0 +1,8 @@
+<resources>
+    <string name="export_data_heading">Datos</string>
+    <string name="export_data_include_books">Incluir libros</string>
+    <string name="export_data_action">Exportar datos</string>
+    <string name="export_data_running">Exportando…</string>
+    <string name="export_data_done">Datos exportados.</string>
+    <string name="export_data_failed">No se pudieron exportar los datos.</string>
+</resources>

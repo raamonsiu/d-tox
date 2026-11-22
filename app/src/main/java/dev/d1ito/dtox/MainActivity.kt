@@ -36,6 +36,8 @@ import dev.d1ito.dtox.ui.reader.ReaderUiState
 import dev.d1ito.dtox.ui.reader.ReaderViewModel
 import dev.d1ito.dtox.ui.reader.ReadingPosition
 import dev.d1ito.dtox.ui.settings.AboutScreen
+import dev.d1ito.dtox.ui.settings.DataExportViewModel
+import dev.d1ito.dtox.ui.settings.ExportDataSection
 import dev.d1ito.dtox.ui.settings.ReadingSettingsViewModel
 import dev.d1ito.dtox.ui.settings.SettingsContent
 import dev.d1ito.dtox.ui.theme.DTOXTheme
@@ -62,6 +64,10 @@ class MainActivity : ComponentActivity() {
         ReadingSettingsViewModel.factory(container)
     }
 
+    private val dataExportViewModel: DataExportViewModel by viewModels {
+        DataExportViewModel.factory(container, applicationContext)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -81,6 +87,7 @@ class MainActivity : ComponentActivity() {
                     readerViewModel,
                     settingsViewModel,
                     container.dispatchers,
+                    dataSettings = { ExportDataSection(dataExportViewModel) },
                 )
             }
         }
@@ -105,12 +112,14 @@ class MainActivity : ComponentActivity() {
  * Library while no book is open, the reader otherwise; the settings screen over either of them.
  * Back closes the settings first, then the book.
  */
+@Suppress("LongParameterList") // Screens' view models plus the settings sections they own.
 @Composable
 private fun App(
     libraryViewModel: LibraryViewModel,
     readerViewModel: ReaderViewModel,
     settingsViewModel: ReadingSettingsViewModel,
     dispatchers: AppDispatchers,
+    dataSettings: @Composable () -> Unit,
 ) {
     val readerState by readerViewModel.state.collectAsState()
     // null until read from disk: paginating with the defaults first would paginate twice.
@@ -119,7 +128,9 @@ private fun App(
     val loadedSettings = settings
     when {
         settingsVisible && loadedSettings != null ->
-            Settings(settingsViewModel, loadedSettings, dispatchers.io) { settingsVisible = false }
+            Settings(settingsViewModel, loadedSettings, dispatchers.io, dataSettings) {
+                settingsVisible = false
+            }
         readerState == ReaderUiState.Closed ->
             LibraryScreen(
                 libraryViewModel,
@@ -143,12 +154,15 @@ private fun App(
  * The settings screen, or the "Acerca de" screen it opens; back and their own buttons close them.
  *
  * @param ioDispatcher where "Acerca de" reads the version and license texts.
+ * @param dataSettings the "Datos" section.
  */
+@Suppress("LongParameterList") // The reading settings plus the sections from other features.
 @Composable
 private fun Settings(
     viewModel: ReadingSettingsViewModel,
     settings: ReadingSettings,
     ioDispatcher: CoroutineDispatcher,
+    dataSettings: @Composable () -> Unit,
     onClose: () -> Unit,
 ) {
     var aboutVisible by rememberSaveable { mutableStateOf(false) }
@@ -163,6 +177,7 @@ private fun Settings(
             onChange = viewModel::change,
             onBack = onClose,
             onOpenAbout = { aboutVisible = true },
+            data = dataSettings,
         )
     }
 }

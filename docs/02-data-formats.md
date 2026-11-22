@@ -209,3 +209,32 @@ Lecturas descargadas y estado de lectura en el dispositivo (D-36: una lectura si
 ## 7. Caché de índice de biblioteca (derivada)
 
 Archivo `files/library-index.json` (D-34), escrito de forma atómica: `{ "version": 1, "books": [{ "bookId", "title", "author", "file", "lastOpenedAt", "finished" }] }`. Es una caché: si falta, está corrupto o es de una versión más nueva, se reconstruye desde `files/library/<hex>.<ext>` y `files/books/<bookId>.json`.
+
+## 8. Exportación de datos (zip)
+
+RF-41. Ajustes › Datos › «Exportar datos» abre el diálogo del sistema para guardar (`ACTION_CREATE_DOCUMENT`, `application/zip`, nombre sugerido `dtox-datos-<fecha>.zip`) y escribe ahí un zip con esta estructura, en este orden:
+
+```
+manifest.json
+settings.json            (si existe)
+books/<bookId>.json      (por nombre)
+library/<hex>.<ext>      (por nombre; solo si se elige «Incluir libros»)
+```
+
+`manifest.json`:
+
+```json
+{
+  "format": "dtox-export",
+  "version": 1,
+  "appVersion": "0.42.0",
+  "exportedAt": "2026-11-21T10:00:00Z",
+  "includesBooks": false
+}
+```
+
+- Los archivos se copian byte a byte (son los mismos formatos de §4 y §5); el importador comprueba `format` y `version`, y un cambio de estructura sube `version`.
+- Por defecto no se incluyen los libros (pueden pesar mucho y el usuario suele tener el original).
+- Nunca se incluyen: temporales de la escritura atómica (`*.tmp`), archivos apartados como corruptos (`*.corrupt`), cachés reconstruibles o descargables (`library-index.json`, §7, y `shortreads/`, §6) ni ningún otro archivo de `files/`. Tampoco `watched-folders.json`: sus permisos no sobreviven a una reinstalación.
+- Orden de entradas determinista y fecha de cada entrada = `exportedAt`: los mismos datos exportados en el mismo instante dan el mismo zip.
+- El destino lo gestiona el sistema y no admite renombrado atómico: si la exportación falla a medias, el documento puede quedar incompleto y la app lo indica ("No se pudieron exportar los datos.").

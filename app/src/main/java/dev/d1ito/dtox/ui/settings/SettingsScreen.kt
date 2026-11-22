@@ -78,8 +78,9 @@ private val switchLabels = listOf(true to R.string.settings_on, false to R.strin
  * @param onChange receives each edit of the current settings.
  * @param onBack closes the screen.
  * @param onOpenAbout opens the version and licenses screen.
+ * @param data the "Datos" section, shown just before "Acerca de".
  */
-@Suppress("LongParameterList") // Five inputs plus the conventional Compose modifier.
+@Suppress("LongParameterList") // Inputs and section slots plus the Compose modifier.
 @Composable
 fun SettingsContent(
     settings: ReadingSettings,
@@ -88,6 +89,7 @@ fun SettingsContent(
     onBack: () -> Unit,
     onOpenAbout: () -> Unit,
     modifier: Modifier = Modifier,
+    data: @Composable () -> Unit = {},
 ) {
     Column(
         modifier =
@@ -107,6 +109,7 @@ fun SettingsContent(
         )
         if (saveFailed) MutedText(stringResource(R.string.settings_save_failed))
         ReadingSection(settings, onChange)
+        data()
         Text(
             stringResource(R.string.settings_section_about),
             style = MaterialTheme.typography.titleMedium,
@@ -221,7 +224,7 @@ private fun steppedLineSpacing(
 
 /** A setting with a few named values; the chosen one is bold and in the text color. */
 @Composable
-private fun <Value> ChoiceSetting(
+internal fun <Value> ChoiceSetting(
     @StringRes label: Int,
     options: List<Pair<Value, Int>>,
     selected: Value,
