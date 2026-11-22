@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Avisos" section of the settings screen (#112). Calm wording, no pressure (D-12). -->
+<resources>
+    <string name="reminders_section">Avisos</string>
+    <string name="reminders_enabled">Recibir avisos de lecturas cortas</string>
+    <string name="reminders_per_day">Avisos al día</string>
+    <string name="reminders_times">Horas</string>
+    <string name="reminders_time_description">Aviso de las %1$s; cambiar la hora</string>
+    <string name="reminders_quiet_hours">Horario de silencio</string>
+    <string name="reminders_quiet_start_description">Silencio desde las %1$s; cambiar la hora</string>
+    <string name="reminders_quiet_end_description">Silencio hasta las %1$s; cambiar la hora</string>
+    <string name="reminders_time_accept">Aceptar</string>
+    <string name="reminders_time_cancel">Cancelar</string>
+    <string name="reminders_save_failed">No se pudieron guardar los avisos.</string>
+    <string name="reminders_error_quiet_time">Esa hora queda dentro del horario de silencio.</string>
+    <string name="reminders_error_repeated_time">Ya hay un aviso a esa hora.</string>
+    <string name="reminders_error_empty_quiet_hours">El silencio debe empezar y terminar a horas distintas.</string>
+    <string name="reminders_error_too_many">No caben más avisos fuera del horario de silencio.</string>
+</resources>

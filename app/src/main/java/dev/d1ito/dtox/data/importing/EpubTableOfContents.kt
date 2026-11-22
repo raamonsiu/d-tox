@@ -5,22 +5,22 @@ import java.io.IOException
 import java.util.zip.ZipFile
 
 /**
- * Reads chapter titles from an EPUB table of contents: the `<nav epub:type="toc">` links of an
- * EPUB 3 navigation document, or the `navPoint` labels of an EPUB 2 NCX. Links are resolved like
- * manifest hrefs (relative to the TOC document, fragment dropped), so several entries pointing
- * into the same document collapse to the first one, which is its title.
+ * Reads the entries of an EPUB table of contents: the `<nav epub:type="toc">` links of an EPUB 3
+ * navigation document, or the `navPoint` labels of an EPUB 2 NCX. Links are resolved like
+ * manifest hrefs (relative to the TOC document) and keep their fragment, so several entries may
+ * point into the same document.
  *
- * @return zip entry name of each linked document → its title; empty if the TOC is unreadable,
- *   so callers fall back to other titles.
+ * @return the entries in TOC order (parents before their children); empty if the TOC is
+ *   unreadable, so callers fall back to other titles. Remote or malformed links are skipped.
  * @throws IOException if the TOC entry exists but cannot be read.
  */
-internal fun titlesFromTableOfContents(
+internal fun entriesFromTableOfContents(
     archive: ZipFile,
     tableOfContents: EpubTableOfContentsDocument,
-): Map<String, String> {
-    val entry = archive.getEntry(tableOfContents.path) ?: return emptyMap()
+): List<EpubTableOfContentsEntry> {
+    val entry = archive.getEntry(tableOfContents.path) ?: return emptyList()
     val document =
-        archive.getInputStream(entry).use { input -> parsedXmlOrNull(input) } ?: return emptyMap()
+        archive.getInputStream(entry).use { input -> parsedXmlOrNull(input) } ?: return emptyList()
     val links =
         when (tableOfContents.format) {
             EpubTableOfContentsFormat.NAVIGATION_DOCUMENT ->
@@ -30,12 +30,11 @@ internal fun titlesFromTableOfContents(
             EpubTableOfContentsFormat.NCX -> ncxLinks(document.documentElement)
         }
     val tableOfContentsDirectory = archiveDirectoryOf(tableOfContents.path)
-    val titles = LinkedHashMap<String, String>()
-    links.forEach { (href, title) ->
-        val path = resolveArchivePath(tableOfContentsDirectory, href) ?: return@forEach
-        titles.putIfAbsent(path, title)
+    return links.mapNotNull { (href, title) ->
+        resolveArchivePath(tableOfContentsDirectory, href)?.let { path ->
+            EpubTableOfContentsEntry(path, fragmentOf(href), title)
+        }
     }
-    return titles
 }
 
 /** `href to title` of the links in the `toc` nav, or in the first nav if none is marked. */

@@ -32,6 +32,19 @@ data class EpubTableOfContentsDocument(
 )
 
 /**
+ * One link of an EPUB table of contents.
+ *
+ * @property path zip entry name of the linked document.
+ * @property fragment `id` of the linked element inside it, `null` for the whole document.
+ * @property title the entry's text, whitespace collapsed.
+ */
+internal data class EpubTableOfContentsEntry(
+    val path: String,
+    val fragment: String?,
+    val title: String,
+)
+
+/**
  * @property title first non-blank `dc:title`, `null` when the OPF declares none.
  * @property authors `dc:creator` values whose role is author or undeclared, in OPF order.
  * @property language first `dc:language` (BCP 47), `null` when missing.
@@ -53,6 +66,17 @@ data class EpubSpineItem(
     val path: String,
     val mediaType: String,
     val isLinear: Boolean,
+)
+
+/**
+ * A readable spine document of an EPUB.
+ *
+ * @property path zip entry name, as table of contents entries name it.
+ * @property content its blocks and the block where each element `id` starts.
+ */
+internal data class EpubContentDocument(
+    val path: String,
+    val content: XhtmlDocumentBlocks,
 )
 
 /** Why a file could not be read as an EPUB package. */
