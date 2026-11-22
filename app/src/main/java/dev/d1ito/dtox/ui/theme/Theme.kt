@@ -59,9 +59,8 @@ object DTOXTheme {
  * Maps the palette onto every Material color role so no Material component can introduce an
  * accent, a tonal tint or an elevation color.
  */
-private fun ReadingPalette.toColorScheme(): ColorScheme {
-    val baseScheme = if (isDark) darkColorScheme() else lightColorScheme()
-    return baseScheme.copy(
+private fun ReadingPalette.toColorScheme(): ColorScheme =
+    (if (isDark) darkColorScheme() else lightColorScheme()).copy(
         primary = text,
         onPrimary = background,
         primaryContainer = highlight,
@@ -72,6 +71,8 @@ private fun ReadingPalette.toColorScheme(): ColorScheme {
         onSecondaryContainer = text,
         tertiary = textMuted,
         onTertiary = background,
+        tertiaryContainer = highlight, // e.g. the selected AM/PM of the time input
+        onTertiaryContainer = text,
         background = background,
         onBackground = text,
         surface = background,
@@ -87,4 +88,3 @@ private fun ReadingPalette.toColorScheme(): ColorScheme {
         outline = divider,
         outlineVariant = divider,
     )
-}

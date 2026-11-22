@@ -11,7 +11,7 @@ import java.time.Instant
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-/** Version of the export zip layout (docs/02-data-formats.md §8); an importer checks it. */
+/** Version of the export zip layout (docs/02-data-formats.md §9); an importer checks it. */
 const val EXPORT_FORMAT_VERSION = 1
 
 private const val EXPORT_FORMAT_NAME = "dtox-export"
@@ -41,7 +41,7 @@ data class UserDataExportManifest(
 
 /**
  * Packs the user data of [filesDirectory] (the app's `files/`) as a zip into [output], with the
- * layout of docs/02-data-formats.md §8: `manifest.json`, `settings.json`, `books/<bookId>.json`
+ * layout of docs/02-data-formats.md §9: `manifest.json`, `settings.json`, `books/<bookId>.json`
  * and, only with [UserDataExportManifest.includeBooks], `library/<file>`. Each group is sorted by
  * name, so the entry order is deterministic. Missing files and directories are skipped; `*.tmp`,
  * `*.corrupt`, caches and any other file are never packed. Files are copied byte for byte.

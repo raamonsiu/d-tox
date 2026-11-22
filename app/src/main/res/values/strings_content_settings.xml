@@ -1,0 +1,8 @@
+<resources>
+    <string name="content_settings_section">Contenido</string>
+    <string name="content_settings_categories">Categorías</string>
+    <string name="content_settings_category_philosophy">Filosofía</string>
+    <string name="content_settings_category_science">Ciencia</string>
+    <string name="content_settings_durations">Duraciones</string>
+    <string name="content_settings_duration_minutes">%1$d min</string>
+</resources>

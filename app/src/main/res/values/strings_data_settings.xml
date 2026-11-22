@@ -1,0 +1,9 @@
+<resources>
+    <string name="data_section">Datos</string>
+    <string name="data_watched_folders">Carpetas vigiladas</string>
+    <string name="data_no_folders">Ninguna carpeta.</string>
+    <string name="data_add_folder">Añadir carpeta</string>
+    <string name="data_remove_folder">Quitar</string>
+    <string name="data_remove_folder_description">Quitar la carpeta %1$s</string>
+    <string name="data_folders_change_failed">No se pudo cambiar la lista de carpetas.</string>
+</resources>

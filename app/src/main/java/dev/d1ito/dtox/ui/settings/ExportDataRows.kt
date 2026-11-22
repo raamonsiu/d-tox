@@ -3,7 +3,6 @@ package dev.d1ito.dtox.ui.settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,18 +23,9 @@ private val includeBooksLabels =
     listOf(true to R.string.settings_on, false to R.string.settings_off)
 
 /**
- * The "Datos" heading with the export rows. Temporary: once the "Datos" section of watched
- * folders exists, [ExportDataRows] goes into it and this heading is no longer needed.
- */
-@Composable
-fun ExportDataSection(viewModel: DataExportViewModel) {
-    Text(stringResource(R.string.export_data_heading), style = MaterialTheme.typography.titleMedium)
-    ExportDataRows(viewModel)
-}
-
-/**
  * "Incluir libros" and "Exportar datos" (RF-41): the action opens the system "save as" dialog
- * (`ACTION_CREATE_DOCUMENT`) and [viewModel] writes the zip to the chosen document.
+ * (`ACTION_CREATE_DOCUMENT`) and [viewModel] writes the zip to the chosen document. Shown inside
+ * the "Datos" section, after the watched folders.
  */
 @Composable
 fun ExportDataRows(viewModel: DataExportViewModel) {

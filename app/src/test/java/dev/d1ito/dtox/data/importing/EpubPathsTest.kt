@@ -29,6 +29,15 @@ class EpubPathsTest {
     }
 
     @Test
+    fun fragmentOf_returnsTheDecodedElementIdentifier() {
+        assertEquals("part-2", fragmentOf("Text/one.xhtml#part-2"))
+        assertEquals("capítulo 1", fragmentOf("one.xhtml#cap%C3%ADtulo%201"))
+        assertNull(fragmentOf("one.xhtml"))
+        assertNull(fragmentOf("one.xhtml#"))
+        assertNull(fragmentOf("one.xhtml#bad%G1"))
+    }
+
+    @Test
     fun leadingSlashIsRelativeToTheArchiveRoot() {
         assertEquals("Text/one.xhtml", resolveArchivePath("OEBPS", "/Text/one.xhtml"))
     }

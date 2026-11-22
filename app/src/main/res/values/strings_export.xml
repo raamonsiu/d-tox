@@ -1,5 +1,4 @@
 <resources>
-    <string name="export_data_heading">Datos</string>
     <string name="export_data_include_books">Incluir libros</string>
     <string name="export_data_action">Exportar datos</string>
     <string name="export_data_running">Exportando…</string>

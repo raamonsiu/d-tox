@@ -128,6 +128,10 @@ Reglas:
 
 `files/settings.json` (o DataStore). Incluye tipografía, tema, animación, avisos, categorías, duraciones, horario de silencio. No contiene datos personales.
 
+- Un objeto `{ "version": 1, ... }` con una sección por grupo de ajustes; todas las secciones comparten un único archivo y una única escritura atómica, que conserva las demás secciones y los campos desconocidos. Un valor ausente o inválido toma su valor por defecto.
+- `content` (RF-32): `{ "categories": ["filosofia", "ciencia"], "durations": [5, 10, 20] }`, con los valores del feed (§6). Por defecto, todas; siempre queda al menos una categoría y una duración elegidas, y una lista vacía o sin valores conocidos se lee como la de por defecto.
+- `reminders` (RF-33/RF-34): `{ "enabled": false, "times": ["19:00"], "quietHours": { "start": "22:00", "end": "08:00" } }`. Horas en 24 h `"HH:mm"`; avisos al día = número de `times` (0–4), sin repetir y ordenadas. El silencio puede cruzar la medianoche (`start` está dentro y `end` no), `start ≠ end` y ninguna hora de `times` cae en él; al leer, las horas repetidas, en silencio o de más se descartan.
+
 ## 6. Feed de lecturas cortas
 
 Feed estático servido por HTTPS (p. ej. GitHub Pages). Detalle del pipeline en [05-content-sources.md](05-content-sources.md).
@@ -210,7 +214,22 @@ Lecturas descargadas y estado de lectura en el dispositivo (D-36: una lectura si
 
 Archivo `files/library-index.json` (D-34), escrito de forma atómica: `{ "version": 1, "books": [{ "bookId", "title", "author", "file", "lastOpenedAt", "finished" }] }`. Es una caché: si falta, está corrupto o es de una versión más nueva, se reconstruye desde `files/library/<hex>.<ext>` y `files/books/<bookId>.json`.
 
-## 8. Exportación de datos (zip)
+## 8. Carpetas vigiladas
+
+Archivo `files/watched-folders.json` (RF-05), escrito de forma atómica. Aparte de `settings.json` porque los URI llevan nombres de carpetas del usuario (§5 no contiene datos personales).
+
+```json
+{
+  "version": 1,
+  "folders": ["content://com.android.externalstorage.documents/tree/primary%3ABooks"]
+}
+```
+
+- `folders`: URI de árbol SAF tal como los devuelve `ACTION_OPEN_DOCUMENT_TREE`, sin repetir y en el orden en que se añadieron. El nombre que se muestra sale del propio URI.
+- Una carpeta está en la lista mientras la app conserva su permiso persistente de lectura (`takePersistableUriPermission`): al añadirla se toma el permiso antes de guardarla (si no se puede guardar, se libera); al quitarla se guarda la lista y luego se libera el permiso. Quitarla no toca sus archivos.
+- Si falta, está corrupto o no se puede leer, la lista empieza vacía (los ajustes nunca bloquean la app); las entradas que no son texto se descartan. El siguiente cambio reescribe el archivo.
+
+## 9. Exportación de datos (zip)
 
 RF-41. Ajustes › Datos › «Exportar datos» abre el diálogo del sistema para guardar (`ACTION_CREATE_DOCUMENT`, `application/zip`, nombre sugerido `dtox-datos-<fecha>.zip`) y escribe ahí un zip con esta estructura, en este orden:
 
@@ -235,6 +254,6 @@ library/<hex>.<ext>      (por nombre; solo si se elige «Incluir libros»)
 
 - Los archivos se copian byte a byte (son los mismos formatos de §4 y §5); el importador comprueba `format` y `version`, y un cambio de estructura sube `version`.
 - Por defecto no se incluyen los libros (pueden pesar mucho y el usuario suele tener el original).
-- Nunca se incluyen: temporales de la escritura atómica (`*.tmp`), archivos apartados como corruptos (`*.corrupt`), cachés reconstruibles o descargables (`library-index.json`, §7, y `shortreads/`, §6) ni ningún otro archivo de `files/`. Tampoco `watched-folders.json`: sus permisos no sobreviven a una reinstalación.
+- Nunca se incluyen: temporales de la escritura atómica (`*.tmp`), archivos apartados como corruptos (`*.corrupt`), cachés reconstruibles o descargables (`library-index.json`, §7, y `shortreads/`, §6) ni ningún otro archivo de `files/`. Tampoco `watched-folders.json` (§8): sus permisos SAF no sobreviven a una reinstalación.
 - Orden de entradas determinista y fecha de cada entrada = `exportedAt`: los mismos datos exportados en el mismo instante dan el mismo zip.
 - El destino lo gestiona el sistema y no admite renombrado atómico: si la exportación falla a medias, el documento puede quedar incompleto y la app lo indica ("No se pudieron exportar los datos.").
