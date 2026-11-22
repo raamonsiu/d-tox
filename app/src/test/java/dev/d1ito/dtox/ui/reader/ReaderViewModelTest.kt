@@ -5,11 +5,13 @@ import dev.d1ito.dtox.data.importing.LoadedBook
 import dev.d1ito.dtox.domain.Anchor
 import dev.d1ito.dtox.domain.Block
 import dev.d1ito.dtox.domain.Book
+import dev.d1ito.dtox.domain.BookAnnotation
 import dev.d1ito.dtox.domain.BookIdentifier
 import dev.d1ito.dtox.domain.BookMetadata
 import dev.d1ito.dtox.domain.Chapter
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
 import java.io.IOException
@@ -43,6 +45,16 @@ class ReaderViewModelTest {
             readerViewModel(SavedStateHandle()) { Result.success(bookWithChapters(count = 0)) }
 
         assertSame(ReaderUiState.Unavailable, viewModel.state.value)
+    }
+
+    @Test
+    fun annotations_followTheOpenBook_andAreForgottenOnClose() {
+        val viewModel = readerViewModel(SavedStateHandle()) { Result.success(book) }
+        assertEquals(emptyList<BookAnnotation>(), viewModel.annotations.annotations.value)
+
+        viewModel.close()
+
+        assertNull(viewModel.annotations.annotations.value)
     }
 
     @Test

@@ -2,6 +2,7 @@ package dev.d1ito.dtox.ui.reader
 
 import androidx.lifecycle.SavedStateHandle
 import dev.d1ito.dtox.data.importing.LoadedBook
+import dev.d1ito.dtox.data.storage.BookDataAnnotationRepository
 import dev.d1ito.dtox.domain.BookIdentifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -11,6 +12,7 @@ import java.time.Clock
 /**
  * A [ReaderViewModel] for JVM tests: everything runs at once on the test thread (Unconfined),
  * debounced saves only happen on flush, and each opened book is added to [openedBooks].
+ * Progress and annotations share [store], as in the app.
  */
 internal fun testReaderViewModel(
     savedState: SavedStateHandle,
@@ -31,6 +33,8 @@ internal fun testReaderViewModel(
             )
         },
         onBookOpened = { bookIdentifier -> openedBooks += bookIdentifier },
+        annotations =
+            ReaderAnnotations(BookDataAnnotationRepository(store), Clock.systemUTC(), scope),
         scope = scope,
     )
 }
