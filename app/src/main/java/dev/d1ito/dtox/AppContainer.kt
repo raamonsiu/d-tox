@@ -16,6 +16,7 @@ import dev.d1ito.dtox.data.storage.FileLibraryIndex
 import dev.d1ito.dtox.data.storage.FileParsedBookCache
 import dev.d1ito.dtox.data.storage.FileReadingSettingsStore
 import dev.d1ito.dtox.data.storage.FileReminderSettingsStore
+import dev.d1ito.dtox.data.storage.FileWatchedFolderStore
 import dev.d1ito.dtox.data.storage.LibraryBookRemover
 import dev.d1ito.dtox.data.storage.LibraryIndex
 import dev.d1ito.dtox.data.storage.ParsedBookCache
@@ -23,6 +24,7 @@ import dev.d1ito.dtox.data.storage.ReadingSettingsStore
 import dev.d1ito.dtox.data.storage.ReminderSettingsStore
 import dev.d1ito.dtox.data.storage.SettingsDocument
 import dev.d1ito.dtox.data.storage.SyncedAtomicFileWriter
+import dev.d1ito.dtox.data.storage.WatchedFolderStore
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import java.io.File
@@ -67,6 +69,7 @@ interface AppContainer {
     val readingSettingsStore: ReadingSettingsStore
     val contentPreferencesStore: ContentPreferencesStore
     val libraryBookRemover: LibraryBookRemover
+    val watchedFolderStore: WatchedFolderStore
     val reminderSettingsStore: ReminderSettingsStore
 }
 
@@ -150,6 +153,14 @@ class DefaultAppContainer(
 
     override val libraryBookRemover: LibraryBookRemover by lazy {
         LibraryBookRemover(libraryDirectory, parsedBookCache, libraryIndex, dispatchers.io)
+    }
+
+    override val watchedFolderStore: WatchedFolderStore by lazy {
+        FileWatchedFolderStore(
+            File(filesDirectory, "watched-folders.json"),
+            fileWriter,
+            dispatchers.io,
+        )
     }
 
     override val reminderSettingsStore: ReminderSettingsStore by lazy {

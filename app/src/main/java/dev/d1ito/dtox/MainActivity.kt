@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import dev.d1ito.dtox.data.storage.PersistableFolderAccess
 import dev.d1ito.dtox.domain.ReadingSettings
 import dev.d1ito.dtox.domain.ReadingTheme
 import dev.d1ito.dtox.ui.library.LibraryScreen
@@ -37,10 +38,12 @@ import dev.d1ito.dtox.ui.reader.ReaderViewModel
 import dev.d1ito.dtox.ui.reader.ReadingPosition
 import dev.d1ito.dtox.ui.settings.AboutScreen
 import dev.d1ito.dtox.ui.settings.ContentPreferencesViewModel
+import dev.d1ito.dtox.ui.settings.DataSettingsSection
 import dev.d1ito.dtox.ui.settings.ReadingSettingsViewModel
 import dev.d1ito.dtox.ui.settings.ReminderSettingsViewModel
 import dev.d1ito.dtox.ui.settings.SettingsContent
 import dev.d1ito.dtox.ui.settings.SettingsViewModels
+import dev.d1ito.dtox.ui.settings.WatchedFoldersViewModel
 import dev.d1ito.dtox.ui.settings.contentSettings
 import dev.d1ito.dtox.ui.settings.reminderSettings
 import dev.d1ito.dtox.ui.theme.DTOXTheme
@@ -65,6 +68,12 @@ class MainActivity : ComponentActivity() {
 
     private val settingsViewModel: ReadingSettingsViewModel by viewModels {
         ReadingSettingsViewModel.factory(container)
+    }
+
+    private val watchedFoldersViewModel: WatchedFoldersViewModel by viewModels {
+        val folderAccess =
+            PersistableFolderAccess(applicationContext.contentResolver, container.dispatchers.io)
+        WatchedFoldersViewModel.factory(container, folderAccess)
     }
 
     private val contentPreferencesViewModel: ContentPreferencesViewModel by viewModels {
@@ -98,6 +107,7 @@ class MainActivity : ComponentActivity() {
                         reminderSettingsViewModel,
                     ),
                     container.dispatchers,
+                    dataSettings = { DataSettingsSection(watchedFoldersViewModel) },
                 )
             }
         }
@@ -122,12 +132,14 @@ class MainActivity : ComponentActivity() {
  * Library while no book is open, the reader otherwise; the settings screen over either of them.
  * Back closes the settings first, then the book.
  */
+@Suppress("LongParameterList") // Screens' view models plus the settings sections they own.
 @Composable
 private fun App(
     libraryViewModel: LibraryViewModel,
     readerViewModel: ReaderViewModel,
     settingsViewModels: SettingsViewModels,
     dispatchers: AppDispatchers,
+    dataSettings: @Composable () -> Unit,
 ) {
     val readerState by readerViewModel.state.collectAsState()
     // null until read from disk: paginating with the defaults first would paginate twice.
@@ -136,7 +148,9 @@ private fun App(
     val loadedSettings = settings
     when {
         settingsVisible && loadedSettings != null ->
-            Settings(settingsViewModels, loadedSettings, dispatchers.io) { settingsVisible = false }
+            Settings(settingsViewModels, loadedSettings, dispatchers.io, dataSettings) {
+                settingsVisible = false
+            }
         readerState == ReaderUiState.Closed ->
             LibraryScreen(
                 libraryViewModel,
@@ -160,12 +174,15 @@ private fun App(
  * The settings screen, or the "Acerca de" screen it opens; back and their own buttons close them.
  *
  * @param ioDispatcher where "Acerca de" reads the version and license texts.
+ * @param dataSettings the "Datos" section.
  */
+@Suppress("LongParameterList") // The reading settings plus the sections from other features.
 @Composable
 private fun Settings(
     viewModels: SettingsViewModels,
     settings: ReadingSettings,
     ioDispatcher: CoroutineDispatcher,
+    dataSettings: @Composable () -> Unit,
     onClose: () -> Unit,
 ) {
     var aboutVisible by rememberSaveable { mutableStateOf(false) }
@@ -182,6 +199,7 @@ private fun Settings(
             reminders = viewModels.reminders.reminderSettings(),
             onBack = onClose,
             onOpenAbout = { aboutVisible = true },
+            data = dataSettings,
         )
     }
 }

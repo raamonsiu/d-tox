@@ -69,8 +69,8 @@ private val marginLabels =
 internal val switchLabels = listOf(true to R.string.settings_on, false to R.string.settings_off)
 
 /**
- * Flat text list of settings (docs/04-design.md §Ajustes): Lectura, Contenido and Avisos, with
- * Acerca de at the end; Datos arrives with its phase. Changes apply at once.
+ * Flat text list of settings (docs/04-design.md §Ajustes): Lectura, Contenido, Avisos and Datos,
+ * with Acerca de at the end. Changes apply at once.
  *
  * @param settings values shown.
  * @param saveFailed shows that the last change could not be saved.
@@ -79,8 +79,9 @@ internal val switchLabels = listOf(true to R.string.settings_on, false to R.stri
  * @param reminders the "Avisos" section, `null` until it is read.
  * @param onBack closes the screen.
  * @param onOpenAbout opens the version and licenses screen.
+ * @param data the "Datos" section, shown just before "Acerca de".
  */
-@Suppress("LongParameterList") // Seven inputs plus the conventional Compose modifier.
+@Suppress("LongParameterList") // Inputs and section slots plus the Compose modifier.
 @Composable
 fun SettingsContent(
     settings: ReadingSettings,
@@ -91,6 +92,7 @@ fun SettingsContent(
     onBack: () -> Unit,
     onOpenAbout: () -> Unit,
     modifier: Modifier = Modifier,
+    data: @Composable () -> Unit = {},
 ) {
     Column(
         modifier =
@@ -112,6 +114,7 @@ fun SettingsContent(
         ReadingSection(settings, onChange)
         ContentSettingsSection(content)
         ReminderSettingsSection(reminders)
+        data()
         Text(
             stringResource(R.string.settings_section_about),
             style = MaterialTheme.typography.titleMedium,
