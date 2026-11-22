@@ -153,6 +153,13 @@ class ReaderViewModel(
         onPageSettled(chapterStart(index))
     }
 
+    /**
+     * Opens the page holding [anchor], chosen among the search results; ignored outside the book.
+     */
+    fun onSearchResultSelected(anchor: Anchor) {
+        onPageSettled(anchor)
+    }
+
     /** Turning past the last page: opens the first page of the next chapter, if there is one. */
     fun onNextChapter() {
         val reading = mutableState.value as? ReaderUiState.Reading ?: return

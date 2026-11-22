@@ -172,6 +172,16 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun searchResult_becomesThePosition_unlessItIsOutsideTheBook() {
+        val viewModel = readerViewModel(SavedStateHandle()) { Result.success(book) }
+
+        viewModel.onSearchResultSelected(anchor(1, 0, 3))
+        viewModel.onSearchResultSelected(anchor(5, 0, 0))
+
+        assertEquals(anchor(1, 0, 3), (viewModel.state.value as ReaderUiState.Reading).position)
+    }
+
+    @Test
     fun chapterTurn_isSavedLikeAPageTurn() {
         val store = InMemoryBookDataStore()
         val savedState = SavedStateHandle()
