@@ -9,9 +9,12 @@ import dev.d1ito.dtox.data.importing.BookImportError
 import dev.d1ito.dtox.data.importing.BookImporter
 import dev.d1ito.dtox.data.importing.BookParseError
 import dev.d1ito.dtox.data.importing.ImportedBook
+import dev.d1ito.dtox.data.importing.WatchedFolderScanner
+import dev.d1ito.dtox.data.importing.newLibraryEntry
 import dev.d1ito.dtox.data.storage.LibraryBookRemover
 import dev.d1ito.dtox.data.storage.LibraryEntry
 import dev.d1ito.dtox.data.storage.LibraryIndex
+import dev.d1ito.dtox.data.storage.WatchedFolderDocuments
 import dev.d1ito.dtox.domain.BookIdentifier
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -50,24 +53,30 @@ enum class LibraryMessage {
     ImportFailed,
     LibraryUnavailable,
     RemoveFailed,
+    FolderScanIncomplete,
 }
 
 /**
  * @property books the library list in display order.
  * @property isImporting an import is running; the add action is disabled meanwhile.
- * @property message what went wrong last, `null` when nothing to report; the next import or
- *   removal clears it.
+ * @property message what went wrong last, `null` when nothing to report; the next import,
+ *   removal or folder scan clears it.
+ * @property hasWatchedFolders there are folders to scan, so the scan action is offered.
+ * @property isScanning a folder scan is running; the scan action is disabled meanwhile.
  */
 data class LibraryUiState(
     val books: List<LibraryEntry> = emptyList(),
     val isImporting: Boolean = false,
     val message: LibraryMessage? = null,
+    val hasWatchedFolders: Boolean = false,
+    val isScanning: Boolean = false,
 )
 
 /**
  * Shows the library index, imports picked files into it and removes books from it (RF-01, RF-02,
- * RF-04). Imports and removals run one at a time, so removing a book while the same file is
- * being imported again cannot leave a copy without its index entry.
+ * RF-04), and scans the watched folders once it is loaded and on demand (RF-05). Imports,
+ * removals and scans run one at a time, so removing a book while the same file is being imported
+ * again cannot leave a copy without its index entry.
  *
  * @param ioDispatcher where the picked file is opened; never the main thread.
  * @param scope runs the work and is cancelled when the ViewModel is cleared.
@@ -76,20 +85,49 @@ class LibraryViewModel(
     private val libraryIndex: LibraryIndex,
     private val bookImporter: BookImporter,
     private val bookRemover: LibraryBookRemover,
+    private val folderScanner: WatchedFolderScanner,
     private val ioDispatcher: CoroutineDispatcher,
     private val scope: CoroutineScope,
 ) : ViewModel(scope) {
     private val libraryChanges = Mutex()
     private val importing = MutableStateFlow(false)
     private val message = MutableStateFlow<LibraryMessage?>(null)
+    private val scanning = MutableStateFlow(false)
 
     val state: StateFlow<LibraryUiState> =
-        combine(libraryIndex.entries, importing, message, ::LibraryUiState)
-            .stateIn(scope, SharingStarted.Eagerly, LibraryUiState())
+        combine(
+            libraryIndex.entries,
+            importing,
+            message,
+            folderScanner.hasFolders,
+            scanning,
+            ::LibraryUiState,
+        ).stateIn(scope, SharingStarted.Eagerly, LibraryUiState())
 
     init {
         scope.launch {
-            libraryIndex.load().onFailure { message.value = LibraryMessage.LibraryUnavailable }
+            libraryIndex
+                .load()
+                .onSuccess { scanWatchedFolders() }
+                .onFailure { message.value = LibraryMessage.LibraryUnavailable }
+        }
+    }
+
+    /**
+     * Imports the new books of the watched folders and marks the ones that are gone; ignored
+     * while another scan runs. A folder that cannot be read shows
+     * [LibraryMessage.FolderScanIncomplete].
+     */
+    fun scanWatchedFolders() {
+        if (scanning.value) return
+        scanning.value = true
+        message.value = null
+        scope.launch {
+            val scan = libraryChanges.withLock { folderScanner.scan() }
+            if (scan.getOrNull()?.isEmpty() != true) {
+                message.value = LibraryMessage.FolderScanIncomplete
+            }
+            scanning.value = false
         }
     }
 
@@ -144,28 +182,32 @@ class LibraryViewModel(
         if (libraryIndex.entries.value.any { entry -> entry.bookIdentifier == identifier }) {
             return Result.success(Unit)
         }
-        return libraryIndex
-            .add(
-                LibraryEntry(
-                    bookIdentifier = identifier,
-                    title = imported.book.metadata.title,
-                    author = imported.book.metadata.author,
-                    fileName = imported.file.name,
-                    lastOpenedAt = null,
-                    finished = false,
-                ),
-            )
+        return libraryIndex.add(imported.newLibraryEntry())
     }
 
     companion object {
-        /** @return a factory that builds the library ViewModel from the app dependencies. */
-        fun factory(container: AppContainer): ViewModelProvider.Factory =
+        /**
+         * @param folderDocuments reads the watched folders through the application's content
+         *   resolver, which the container does not hold.
+         * @return a factory that builds the library ViewModel from the app dependencies.
+         */
+        fun factory(
+            container: AppContainer,
+            folderDocuments: WatchedFolderDocuments,
+        ): ViewModelProvider.Factory =
             viewModelFactory {
                 initializer {
                     LibraryViewModel(
                         libraryIndex = container.libraryIndex,
                         bookImporter = container.bookImporter,
                         bookRemover = container.libraryBookRemover,
+                        folderScanner =
+                            WatchedFolderScanner(
+                                container.watchedFolderStore,
+                                folderDocuments,
+                                container.bookImporter,
+                                container.libraryIndex,
+                            ),
                         ioDispatcher = container.dispatchers.io,
                         scope = CoroutineScope(SupervisorJob() + container.dispatchers.main),
                     )

@@ -212,7 +212,11 @@ Lecturas descargadas y estado de lectura en el dispositivo (D-36: una lectura si
 
 ## 7. Caché de índice de biblioteca (derivada)
 
-Archivo `files/library-index.json` (D-34), escrito de forma atómica: `{ "version": 1, "books": [{ "bookId", "title", "author", "file", "lastOpenedAt", "finished" }] }`. Es una caché: si falta, está corrupto o es de una versión más nueva, se reconstruye desde `files/library/<hex>.<ext>` y `files/books/<bookId>.json`.
+Archivo `files/library-index.json` (D-34), escrito de forma atómica: `{ "version": 1, "books": [{ "bookId", "title", "author", "file", "lastOpenedAt", "finished", "source" }] }`. Es una caché: si falta, está corrupto o es de una versión más nueva, se reconstruye desde `files/library/<hex>.<ext>` y `files/books/<bookId>.json`.
+
+- `source` (opcional, `null` en los libros añadidos a mano y en índices anteriores): `{ "folder", "document", "missing" }`, el URI de la carpeta vigilada (§8), el URI SAF del documento donde se encontró el libro y si el último escaneo ya no lo encontró. Se pierde al reconstruir el índice y el siguiente escaneo lo recupera.
+- Escaneo de carpetas vigiladas (RF-05): al abrir la app (cuando el índice se ha cargado) y con «Buscar libros ahora» en la biblioteca, sin servicio permanente. Recorre cada carpeta y sus subcarpetas; los documentos EPUB/TXT/Markdown cuyo URI no está en ningún `source` se importan como un archivo elegido a mano (copia propia, mismo `bookId` si son los mismos bytes). Si el libro ya estaba en la biblioteca, conserva su entrada y toma el `source` nuevo solo si no tenía o el suyo falta.
+- Un libro cuyo documento ya no está en su carpeta se marca `"missing": true` y la biblioteca lo indica en gris («Ya no está en su carpeta»); no se borra nada (ni la copia ni los datos) y se sigue pudiendo leer. Si vuelve a aparecer, se desmarca. Una carpeta que no se puede leer no cambia las marcas de sus libros, ni tampoco quitar una carpeta de la lista.
 
 ## 8. Carpetas vigiladas
 

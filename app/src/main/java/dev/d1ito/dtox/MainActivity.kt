@@ -24,6 +24,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import dev.d1ito.dtox.data.storage.PersistableFolderAccess
+import dev.d1ito.dtox.data.storage.SafWatchedFolderDocuments
 import dev.d1ito.dtox.domain.ReadingSettings
 import dev.d1ito.dtox.domain.ReadingTheme
 import dev.d1ito.dtox.ui.library.LibraryScreen
@@ -63,7 +64,9 @@ class MainActivity : ComponentActivity() {
     private val container: AppContainer get() = (application as DtoxApplication).container
 
     private val libraryViewModel: LibraryViewModel by viewModels {
-        LibraryViewModel.factory(container)
+        val folderDocuments =
+            SafWatchedFolderDocuments(applicationContext.contentResolver, container.dispatchers.io)
+        LibraryViewModel.factory(container, folderDocuments)
     }
 
     private val readerViewModel: ReaderViewModel by viewModels {

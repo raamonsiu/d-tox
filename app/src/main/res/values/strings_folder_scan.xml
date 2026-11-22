@@ -1,0 +1,6 @@
+<resources>
+    <string name="library_scan">Buscar libros ahora</string>
+    <string name="library_scanning">Buscando libros…</string>
+    <string name="library_scan_incomplete">No se pudieron leer todas las carpetas vigiladas.</string>
+    <string name="library_book_missing">Ya no está en su carpeta</string>
+</resources>
