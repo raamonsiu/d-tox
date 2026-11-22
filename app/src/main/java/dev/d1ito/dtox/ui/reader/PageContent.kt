@@ -22,27 +22,33 @@ import dev.d1ito.dtox.pagination.PageFragment
  * @param chapter the chapter [page] belongs to; its blocks provide the text.
  * @param styles the same styles the [ComposeBlockMeasurer] used to paginate.
  * @param modifier should give the column the width used as the viewport width.
+ * @param textLayouts receives where each fragment's text is laid out, e.g. for text selection.
  */
+@Suppress("LongParameterList") // Four inputs plus the conventional Compose modifier.
 @Composable
 fun PageContent(
     page: Page,
     chapter: Chapter,
     styles: ReadingStyles,
     modifier: Modifier = Modifier,
+    textLayouts: PageTextLayouts? = null,
 ) {
     Column(modifier = modifier) {
         page.fragments.forEachIndexed { position, fragment ->
-            FragmentContent(fragment, chapter, styles, isFirstOnPage = position == 0)
+            val recorder = textLayouts?.recorderOf(position)
+            FragmentContent(fragment, chapter, styles, isFirstOnPage = position == 0, recorder)
         }
     }
 }
 
+@Suppress("LongParameterList") // What to draw, how, and who records where it was laid out.
 @Composable
 private fun FragmentContent(
     fragment: PageFragment,
     chapter: Chapter,
     styles: ReadingStyles,
     isFirstOnPage: Boolean,
+    textRecorder: FragmentTextRecorder?,
 ) {
     val block = chapter.blocks[fragment.blockIndex]
     val style = styles.styleOf(block)
@@ -61,7 +67,12 @@ private fun FragmentContent(
         BasicText(
             text = text,
             style = style.textStyle,
-            modifier = Modifier.fillMaxWidth().padding(start = style.startIndent),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = style.startIndent)
+                    .recordsPlacement(textRecorder),
+            onTextLayout = { layout -> textRecorder?.onLayout(layout) },
         )
     }
 }
