@@ -37,10 +37,15 @@ import dev.d1ito.dtox.ui.reader.ReaderUiState
 import dev.d1ito.dtox.ui.reader.ReaderViewModel
 import dev.d1ito.dtox.ui.reader.ReadingPosition
 import dev.d1ito.dtox.ui.settings.AboutScreen
+import dev.d1ito.dtox.ui.settings.ContentPreferencesViewModel
 import dev.d1ito.dtox.ui.settings.DataSettingsSection
 import dev.d1ito.dtox.ui.settings.ReadingSettingsViewModel
+import dev.d1ito.dtox.ui.settings.ReminderSettingsViewModel
 import dev.d1ito.dtox.ui.settings.SettingsContent
+import dev.d1ito.dtox.ui.settings.SettingsViewModels
 import dev.d1ito.dtox.ui.settings.WatchedFoldersViewModel
+import dev.d1ito.dtox.ui.settings.contentSettings
+import dev.d1ito.dtox.ui.settings.reminderSettings
 import dev.d1ito.dtox.ui.theme.DTOXTheme
 import dev.d1ito.dtox.ui.theme.WindowMatchesPalette
 import dev.d1ito.dtox.ui.theme.readingPaletteFor
@@ -71,6 +76,14 @@ class MainActivity : ComponentActivity() {
         WatchedFoldersViewModel.factory(container, folderAccess)
     }
 
+    private val contentPreferencesViewModel: ContentPreferencesViewModel by viewModels {
+        ContentPreferencesViewModel.factory(container)
+    }
+
+    private val reminderSettingsViewModel: ReminderSettingsViewModel by viewModels {
+        ReminderSettingsViewModel.factory(container)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -88,7 +101,11 @@ class MainActivity : ComponentActivity() {
                 App(
                     libraryViewModel,
                     readerViewModel,
-                    settingsViewModel,
+                    SettingsViewModels(
+                        settingsViewModel,
+                        contentPreferencesViewModel,
+                        reminderSettingsViewModel,
+                    ),
                     container.dispatchers,
                     dataSettings = { DataSettingsSection(watchedFoldersViewModel) },
                 )
@@ -120,18 +137,18 @@ class MainActivity : ComponentActivity() {
 private fun App(
     libraryViewModel: LibraryViewModel,
     readerViewModel: ReaderViewModel,
-    settingsViewModel: ReadingSettingsViewModel,
+    settingsViewModels: SettingsViewModels,
     dispatchers: AppDispatchers,
     dataSettings: @Composable () -> Unit,
 ) {
     val readerState by readerViewModel.state.collectAsState()
     // null until read from disk: paginating with the defaults first would paginate twice.
-    val settings by settingsViewModel.settings.collectAsState()
+    val settings by settingsViewModels.reading.settings.collectAsState()
     var settingsVisible by rememberSaveable { mutableStateOf(false) }
     val loadedSettings = settings
     when {
         settingsVisible && loadedSettings != null ->
-            Settings(settingsViewModel, loadedSettings, dispatchers.io, dataSettings) {
+            Settings(settingsViewModels, loadedSettings, dispatchers.io, dataSettings) {
                 settingsVisible = false
             }
         readerState == ReaderUiState.Closed ->
@@ -162,7 +179,7 @@ private fun App(
 @Suppress("LongParameterList") // The reading settings plus the sections from other features.
 @Composable
 private fun Settings(
-    viewModel: ReadingSettingsViewModel,
+    viewModels: SettingsViewModels,
     settings: ReadingSettings,
     ioDispatcher: CoroutineDispatcher,
     dataSettings: @Composable () -> Unit,
@@ -173,11 +190,13 @@ private fun Settings(
         AboutScreen(ioDispatcher, onBack = { aboutVisible = false })
     } else {
         BackHandler(onBack = onClose)
-        val saveFailed by viewModel.saveFailed.collectAsState()
+        val saveFailed by viewModels.reading.saveFailed.collectAsState()
         SettingsContent(
             settings,
             saveFailed,
-            onChange = viewModel::change,
+            onChange = viewModels.reading::change,
+            content = viewModels.content.contentSettings(),
+            reminders = viewModels.reminders.reminderSettings(),
             onBack = onClose,
             onOpenAbout = { aboutVisible = true },
             data = dataSettings,

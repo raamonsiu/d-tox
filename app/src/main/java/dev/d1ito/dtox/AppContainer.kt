@@ -9,15 +9,20 @@ import dev.d1ito.dtox.data.importing.Sha256BookIdentifierCalculator
 import dev.d1ito.dtox.data.importing.TextBookParser
 import dev.d1ito.dtox.data.storage.AtomicFileWriter
 import dev.d1ito.dtox.data.storage.BookDataStore
+import dev.d1ito.dtox.data.storage.ContentPreferencesStore
 import dev.d1ito.dtox.data.storage.FileBookDataStore
+import dev.d1ito.dtox.data.storage.FileContentPreferencesStore
 import dev.d1ito.dtox.data.storage.FileLibraryIndex
 import dev.d1ito.dtox.data.storage.FileParsedBookCache
 import dev.d1ito.dtox.data.storage.FileReadingSettingsStore
+import dev.d1ito.dtox.data.storage.FileReminderSettingsStore
 import dev.d1ito.dtox.data.storage.FileWatchedFolderStore
 import dev.d1ito.dtox.data.storage.LibraryBookRemover
 import dev.d1ito.dtox.data.storage.LibraryIndex
 import dev.d1ito.dtox.data.storage.ParsedBookCache
 import dev.d1ito.dtox.data.storage.ReadingSettingsStore
+import dev.d1ito.dtox.data.storage.ReminderSettingsStore
+import dev.d1ito.dtox.data.storage.SettingsDocument
 import dev.d1ito.dtox.data.storage.SyncedAtomicFileWriter
 import dev.d1ito.dtox.data.storage.WatchedFolderStore
 import kotlinx.coroutines.CoroutineDispatcher
@@ -62,8 +67,10 @@ interface AppContainer {
     val parsedBookCache: ParsedBookCache
     val libraryBookLoader: LibraryBookLoader
     val readingSettingsStore: ReadingSettingsStore
+    val contentPreferencesStore: ContentPreferencesStore
     val libraryBookRemover: LibraryBookRemover
     val watchedFolderStore: WatchedFolderStore
+    val reminderSettingsStore: ReminderSettingsStore
 }
 
 /**
@@ -131,8 +138,17 @@ class DefaultAppContainer(
         LibraryBookLoader(libraryDirectory, parsersByExtension, parsedBookCache, dispatchers.io)
     }
 
+    /** `settings.json`, shared by the store of each settings section. */
+    private val settingsDocument by lazy {
+        SettingsDocument(File(filesDirectory, "settings.json"), fileWriter, dispatchers.io)
+    }
+
     override val readingSettingsStore: ReadingSettingsStore by lazy {
-        FileReadingSettingsStore(File(filesDirectory, "settings.json"), fileWriter, dispatchers.io)
+        FileReadingSettingsStore(settingsDocument)
+    }
+
+    override val contentPreferencesStore: ContentPreferencesStore by lazy {
+        FileContentPreferencesStore(settingsDocument)
     }
 
     override val libraryBookRemover: LibraryBookRemover by lazy {
@@ -145,5 +161,9 @@ class DefaultAppContainer(
             fileWriter,
             dispatchers.io,
         )
+    }
+
+    override val reminderSettingsStore: ReminderSettingsStore by lazy {
+        FileReminderSettingsStore(settingsDocument)
     }
 }

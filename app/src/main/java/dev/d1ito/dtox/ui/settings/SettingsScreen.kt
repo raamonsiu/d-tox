@@ -66,16 +66,17 @@ private val marginLabels =
         PageMargins.WIDE to R.string.settings_margins_wide,
     )
 
-private val switchLabels = listOf(true to R.string.settings_on, false to R.string.settings_off)
+internal val switchLabels = listOf(true to R.string.settings_on, false to R.string.settings_off)
 
 /**
- * Flat text list of settings (docs/04-design.md §Ajustes). Only the Lectura section exists in the
- * MVP, with Acerca de at the end; Avisos, Contenido and Datos arrive with their phases. Changes
- * apply at once.
+ * Flat text list of settings (docs/04-design.md §Ajustes): Lectura, Contenido, Avisos and Datos,
+ * with Acerca de at the end. Changes apply at once.
  *
  * @param settings values shown.
  * @param saveFailed shows that the last change could not be saved.
  * @param onChange receives each edit of the current settings.
+ * @param content the "Contenido" section, `null` until it is read.
+ * @param reminders the "Avisos" section, `null` until it is read.
  * @param onBack closes the screen.
  * @param onOpenAbout opens the version and licenses screen.
  * @param data the "Datos" section, shown just before "Acerca de".
@@ -86,6 +87,8 @@ fun SettingsContent(
     settings: ReadingSettings,
     saveFailed: Boolean,
     onChange: SettingsEdit,
+    content: ContentSettings?,
+    reminders: ReminderSettingsSectionState?,
     onBack: () -> Unit,
     onOpenAbout: () -> Unit,
     modifier: Modifier = Modifier,
@@ -109,6 +112,8 @@ fun SettingsContent(
         )
         if (saveFailed) MutedText(stringResource(R.string.settings_save_failed))
         ReadingSection(settings, onChange)
+        ContentSettingsSection(content)
+        ReminderSettingsSection(reminders)
         data()
         Text(
             stringResource(R.string.settings_section_about),
@@ -205,7 +210,7 @@ private fun PageSettings(
  * @property canDecrease the − button is enabled.
  * @property canIncrease the + button is enabled.
  */
-private class StepperValue(
+internal class StepperValue(
     val text: String,
     val canDecrease: Boolean,
     val canIncrease: Boolean,
@@ -224,7 +229,7 @@ private fun steppedLineSpacing(
 
 /** A setting with a few named values; the chosen one is bold and in the text color. */
 @Composable
-private fun <Value> ChoiceSetting(
+internal fun <Value> ChoiceSetting(
     @StringRes label: Int,
     options: List<Pair<Value, Int>>,
     selected: Value,
@@ -256,7 +261,7 @@ private fun <Value> ChoiceSetting(
 
 /** A numeric setting with − and + buttons, disabled at the ends of its range. */
 @Composable
-private fun StepperSetting(
+internal fun StepperSetting(
     @StringRes label: Int,
     value: StepperValue,
     onStep: (Int) -> Unit,

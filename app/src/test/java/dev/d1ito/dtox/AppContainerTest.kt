@@ -53,6 +53,8 @@ class AppContainerTest {
         assertSame(container.parsedBookCache, container.parsedBookCache)
         assertSame(container.libraryBookLoader, container.libraryBookLoader)
         assertSame(container.readingSettingsStore, container.readingSettingsStore)
+        assertSame(container.contentPreferencesStore, container.contentPreferencesStore)
+        assertSame(container.reminderSettingsStore, container.reminderSettingsStore)
     }
 
     @Test

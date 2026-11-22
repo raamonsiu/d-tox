@@ -26,6 +26,14 @@ internal fun resolveArchivePath(
 }
 
 /**
+ * The fragment of an `href` (`chapter.xhtml#part-2` → `part-2`), percent-decoded like the path.
+ *
+ * @return the element `id` it names, or `null` when there is none, it is empty or malformed.
+ */
+internal fun fragmentOf(href: String): String? =
+    href.substringAfter('#', missingDelimiterValue = "").ifEmpty { null }?.let(::percentDecoded)
+
+/**
  * Normalizes a path inside the archive (no decoding): removes empty and `.` segments and applies
  * `..` to the previous segment.
  *
