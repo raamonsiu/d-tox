@@ -39,7 +39,9 @@ import dev.d1ito.dtox.ui.reader.ReaderViewModel
 import dev.d1ito.dtox.ui.reader.ReadingPosition
 import dev.d1ito.dtox.ui.settings.AboutScreen
 import dev.d1ito.dtox.ui.settings.ContentPreferencesViewModel
+import dev.d1ito.dtox.ui.settings.DataExportViewModel
 import dev.d1ito.dtox.ui.settings.DataSettingsSection
+import dev.d1ito.dtox.ui.settings.ExportDataRows
 import dev.d1ito.dtox.ui.settings.ReadingSettingsViewModel
 import dev.d1ito.dtox.ui.settings.ReminderSettingsViewModel
 import dev.d1ito.dtox.ui.settings.SettingsContent
@@ -77,6 +79,15 @@ class MainActivity : ComponentActivity() {
         WatchedFoldersViewModel.factory(container, folderAccess)
     }
 
+    private val dataExportViewModel: DataExportViewModel by viewModels {
+        DataExportViewModel.factory(container, applicationContext)
+    }
+
+    /** The "Datos" section: the watched folders, then exporting the user data. */
+    private val dataSettings: @Composable () -> Unit = {
+        DataSettingsSection(watchedFoldersViewModel) { ExportDataRows(dataExportViewModel) }
+    }
+
     private val contentPreferencesViewModel: ContentPreferencesViewModel by viewModels {
         ContentPreferencesViewModel.factory(container)
     }
@@ -108,7 +119,7 @@ class MainActivity : ComponentActivity() {
                         reminderSettingsViewModel,
                     ),
                     container.dispatchers,
-                    dataSettings = { DataSettingsSection(watchedFoldersViewModel) },
+                    dataSettings = dataSettings,
                 )
             }
         }

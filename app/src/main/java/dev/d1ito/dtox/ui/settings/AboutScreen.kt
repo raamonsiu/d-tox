@@ -166,7 +166,7 @@ private fun AttributionEntry(
  *
  * @return the version, or the failure if the package manager cannot describe this app.
  */
-private fun installedVersionName(context: Context): Result<String> =
+internal fun installedVersionName(context: Context): Result<String> =
     runCatching {
         val packageManager = context.packageManager
         val packageInfo =

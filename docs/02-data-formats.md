@@ -228,3 +228,32 @@ Archivo `files/watched-folders.json` (RF-05), escrito de forma atómica. Aparte 
 - `folders`: URI de árbol SAF tal como los devuelve `ACTION_OPEN_DOCUMENT_TREE`, sin repetir y en el orden en que se añadieron. El nombre que se muestra sale del propio URI.
 - Una carpeta está en la lista mientras la app conserva su permiso persistente de lectura (`takePersistableUriPermission`): al añadirla se toma el permiso antes de guardarla (si no se puede guardar, se libera); al quitarla se guarda la lista y luego se libera el permiso. Quitarla no toca sus archivos.
 - Si falta, está corrupto o no se puede leer, la lista empieza vacía (los ajustes nunca bloquean la app); las entradas que no son texto se descartan. El siguiente cambio reescribe el archivo.
+
+## 9. Exportación de datos (zip)
+
+RF-41. Ajustes › Datos › «Exportar datos» abre el diálogo del sistema para guardar (`ACTION_CREATE_DOCUMENT`, `application/zip`, nombre sugerido `dtox-datos-<fecha>.zip`) y escribe ahí un zip con esta estructura, en este orden:
+
+```
+manifest.json
+settings.json            (si existe)
+books/<bookId>.json      (por nombre)
+library/<hex>.<ext>      (por nombre; solo si se elige «Incluir libros»)
+```
+
+`manifest.json`:
+
+```json
+{
+  "format": "dtox-export",
+  "version": 1,
+  "appVersion": "0.42.0",
+  "exportedAt": "2026-11-21T10:00:00Z",
+  "includesBooks": false
+}
+```
+
+- Los archivos se copian byte a byte (son los mismos formatos de §4 y §5); el importador comprueba `format` y `version`, y un cambio de estructura sube `version`.
+- Por defecto no se incluyen los libros (pueden pesar mucho y el usuario suele tener el original).
+- Nunca se incluyen: temporales de la escritura atómica (`*.tmp`), archivos apartados como corruptos (`*.corrupt`), cachés reconstruibles o descargables (`library-index.json`, §7, y `shortreads/`, §6) ni ningún otro archivo de `files/`. Tampoco `watched-folders.json` (§8): sus permisos SAF no sobreviven a una reinstalación.
+- Orden de entradas determinista y fecha de cada entrada = `exportedAt`: los mismos datos exportados en el mismo instante dan el mismo zip.
+- El destino lo gestiona el sistema y no admite renombrado atómico: si la exportación falla a medias, el documento puede quedar incompleto y la app lo indica ("No se pudieron exportar los datos.").
