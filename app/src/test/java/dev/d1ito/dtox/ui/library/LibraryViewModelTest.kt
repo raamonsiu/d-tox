@@ -1,19 +1,24 @@
 package dev.d1ito.dtox.ui.library
 
 import dev.d1ito.dtox.data.importing.BookImporter
+import dev.d1ito.dtox.data.importing.FakeWatchedFolderDocuments
+import dev.d1ito.dtox.data.importing.FakeWatchedFolderStore
 import dev.d1ito.dtox.data.importing.Sha256BookIdentifierCalculator
 import dev.d1ito.dtox.data.importing.TextBookParser
+import dev.d1ito.dtox.data.importing.WatchedFolderScanner
 import dev.d1ito.dtox.data.storage.FileBookDataStore
 import dev.d1ito.dtox.data.storage.FileLibraryIndex
 import dev.d1ito.dtox.data.storage.FileParsedBookCache
 import dev.d1ito.dtox.data.storage.LibraryBookRemover
 import dev.d1ito.dtox.data.storage.SyncedAtomicFileWriter
+import dev.d1ito.dtox.domain.WatchedFolder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -30,6 +35,9 @@ class LibraryViewModelTest {
     private val filesDirectory: File by lazy { temporaryFolder.newFolder("files") }
     private val libraryDirectory: File by lazy { File(filesDirectory, "library") }
     private val writer = SyncedAtomicFileWriter(Dispatchers.Unconfined)
+    private val novels = WatchedFolder("content://provider/tree/primary%3ANovelas")
+    private val folderDocuments = FakeWatchedFolderDocuments()
+    private val folderStore = FakeWatchedFolderStore()
     private val libraryIndex by lazy {
         FileLibraryIndex(
             indexFile = File(filesDirectory, "library-index.json"),
@@ -166,6 +174,42 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun openingTheLibrary_importsTheBooksOfTheWatchedFolders() {
+        folderStore.current.value = listOf(novels)
+        folderDocuments.put(novels, "cartas.md", MARKDOWN_BOOK)
+
+        val state = viewModel().state.value
+
+        assertEquals(listOf("Cartas a Lucilio"), state.books.map { it.title })
+        assertTrue(state.hasWatchedFolders)
+        assertFalse(state.isScanning)
+        assertNull(state.message)
+    }
+
+    @Test
+    fun scanningOnDemand_marksTheBooksThatAreGone() {
+        folderStore.current.value = listOf(novels)
+        folderDocuments.put(novels, "cartas.md", MARKDOWN_BOOK)
+        val viewModel = viewModel()
+
+        folderDocuments.delete(novels, "cartas.md")
+        viewModel.scanWatchedFolders()
+
+        val listed =
+            viewModel.state.value.books
+                .single()
+        assertEquals(true, listed.source?.missing)
+    }
+
+    @Test
+    fun anUnreadableFolder_showsFolderScanIncomplete() {
+        folderStore.current.value = listOf(novels)
+        folderDocuments.unreadableFolders += novels
+
+        assertEquals(LibraryMessage.FolderScanIncomplete, viewModel().state.value.message)
+    }
+
+    @Test
     fun unreadableLibrary_showsLibraryUnavailable() {
         // A file where the library directory should be cannot be listed for a rebuild.
         libraryDirectory.writeText("not a directory")
@@ -194,6 +238,7 @@ class LibraryViewModelTest {
             libraryIndex,
             importer,
             remover,
+            WatchedFolderScanner(folderStore, folderDocuments, importer, libraryIndex),
             Dispatchers.Unconfined,
             CoroutineScope(Dispatchers.Unconfined),
         )
