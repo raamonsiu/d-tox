@@ -5,11 +5,13 @@ import dev.d1ito.dtox.data.storage.AnnotationRepository
 import dev.d1ito.dtox.data.storage.BookSource
 import dev.d1ito.dtox.data.storage.NewBookDetails
 import dev.d1ito.dtox.domain.Anchor
+import dev.d1ito.dtox.domain.AnchorRange
 import dev.d1ito.dtox.domain.AnnotationIdentifier
 import dev.d1ito.dtox.domain.AnnotationMetadata
 import dev.d1ito.dtox.domain.Book
 import dev.d1ito.dtox.domain.BookAnnotation
 import dev.d1ito.dtox.domain.anchorAt
+import dev.d1ito.dtox.domain.highlightRanges
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -90,6 +93,14 @@ class ReaderAnnotations(
         combine(storedAnnotations, shownPage) { stored, page ->
             if (stored == null || page == null) null else stored.bookmarksOn(page).isNotEmpty()
         }.stateIn(scope, SharingStarted.Eagerly, initialValue = null)
+
+    /**
+     * Ranges of the open book's highlights in reading order; empty while [annotations] is `null`.
+     */
+    val highlights: StateFlow<List<AnchorRange>> =
+        storedAnnotations
+            .map { stored -> stored.orEmpty().highlightRanges() }
+            .stateIn(scope, SharingStarted.Eagerly, initialValue = emptyList())
 
     /**
      * Starts following the annotations of [book], replacing the previous book's.

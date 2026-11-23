@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import dev.d1ito.dtox.R
 import dev.d1ito.dtox.domain.Anchor
+import dev.d1ito.dtox.domain.AnchorRange
 import dev.d1ito.dtox.domain.Book
 import dev.d1ito.dtox.domain.Chapter
 import dev.d1ito.dtox.domain.PageMargins
@@ -66,8 +67,10 @@ private val readingColumnMaxWidth = 600.dp
  * @param settings text size, line spacing and margins (changing them repaginates and reopens
  *   at the page holding [ReadingPosition.restoredAnchor]), whether page turns slide and whether
  *   the progress indicator shows.
+ * @param highlights ranges of the book's saved highlights, shaded on the pages they fall on;
+ *   they never change the pagination.
  */
-@Suppress("LongParameterList") // Five inputs plus the conventional Compose modifier.
+@Suppress("LongParameterList") // Six inputs plus the conventional Compose modifier.
 @Composable
 fun ReaderScreen(
     chapter: Chapter,
@@ -76,6 +79,7 @@ fun ReaderScreen(
     modifier: Modifier = Modifier,
     settings: ReadingSettings = ReadingSettings.Default,
     book: Book? = null,
+    highlights: List<AnchorRange> = emptyList(),
 ) {
     val styles = rememberReadingStyles(settings)
     val paginator = remember(paginationDispatcher) { CachingPaginator(paginationDispatcher) }
@@ -96,7 +100,7 @@ fun ReaderScreen(
             pages.isFailure -> ReaderMessage(stringResource(R.string.reader_chapter_unavailable))
             else ->
                 ChapterPager(
-                    PaginatedChapter(chapter, pages.getOrThrow(), columnWidth, styles),
+                    PaginatedChapter(chapter, pages.getOrThrow(), columnWidth, styles, highlights),
                     position,
                     settings.pageAnimation,
                     settings.progressIndicator,
@@ -128,12 +132,13 @@ private fun Modifier.readerPageArea(horizontalMargin: Dp): Modifier =
         .windowInsetsPadding(WindowInsets.safeDrawing)
         .padding(horizontal = horizontalMargin, vertical = pageVerticalMargin)
 
-/** A chapter with its pages for one column width. */
+/** A chapter with its pages for one column width, and the book's highlights to shade on them. */
 private class PaginatedChapter(
     val chapter: Chapter,
     val pages: List<Page>,
     val columnWidth: Dp,
     val styles: ReadingStyles,
+    val highlights: List<AnchorRange>,
 )
 
 /**
@@ -250,6 +255,7 @@ private fun PageAt(
             paginated.chapter,
             paginated.styles,
             Modifier.width(paginated.columnWidth),
+            paginated.highlights,
         )
     }
 }

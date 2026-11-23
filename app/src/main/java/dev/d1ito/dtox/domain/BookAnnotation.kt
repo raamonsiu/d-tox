@@ -120,3 +120,7 @@ sealed interface BookAnnotation {
         override val note: String? get() = null
     }
 }
+
+/** @return the ranges of the highlights among these annotations, in the same order. */
+fun List<BookAnnotation>.highlightRanges(): List<AnchorRange> =
+    filterIsInstance<BookAnnotation.Highlight>().map(BookAnnotation.Highlight::range)
