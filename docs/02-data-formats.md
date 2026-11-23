@@ -60,7 +60,7 @@ La página mostrada **no** se persiste, solo se calcula: `página = f(ancla, vie
 
 ## 4. Archivo de progreso y notas (por libro)
 
-Ubicación (MVP): almacenamiento interno de la app, `files/books/<bookId>.json`. Con RF-27 podrá apuntar a una carpeta elegida por el usuario.
+Ubicación: por defecto, almacenamiento interno de la app, `files/books/<bookId>.json`; con RF-27, `books/<bookId>.json` dentro de la carpeta de datos elegida por el usuario (§11).
 
 ```json
 {
@@ -288,3 +288,22 @@ RF-41. Ajustes › Datos › «Importar datos» abre el diálogo del sistema par
 **Libros** (`library/`, si el zip los trae): los que la biblioteca no lista ya (por `bookId`) se añaden por el mismo camino que una importación normal (copia atómica, `bookId` recalculado del contenido, sin duplicados). Al acabar se actualiza el índice de biblioteca (§7) sin reconstruirlo, para no perder los `source` de las carpetas vigiladas: se añaden los libros nuevos y `finished` y `lastOpenedAt` se refrescan con el progreso fusionado.
 
 Importar el mismo zip otra vez no cambia nada. Si una escritura falla a medias (p. ej. sin espacio), lo ya escrito queda completo y coherente, la app indica «No se pudieron importar los datos.» y basta con repetir la importación.
+
+## 11. Carpeta de datos
+
+RF-27. Ajustes › Datos › «Carpeta de datos» permite guardar los `<bookId>.json` (§4) en una carpeta elegida con `ACTION_OPEN_DOCUMENT_TREE` (p. ej. una sincronizada con Syncthing), dentro de su subcarpeta `books/`, en vez de en `files/books/`. «Volver a la memoria interna» deshace la elección. El resto de archivos (`settings.json`, `library/`, índices) sigue en `files/`.
+
+Archivo `files/data-folder.json`, escrito de forma atómica; aparte de `settings.json` porque el URI lleva el nombre de una carpeta del usuario (como §8):
+
+```json
+{
+  "version": 1,
+  "folder": "content://com.android.externalstorage.documents/tree/primary%3ASync%2FDTOX"
+}
+```
+
+- `folder`: URI de árbol SAF, o `null` para la memoria interna. Si el archivo falta, está corrupto o no se puede leer, se usa la memoria interna (nunca bloquea la app).
+- Mientras la carpeta está en uso, la app conserva su permiso persistente de lectura y escritura: se toma antes de cambiar y se libera la de la carpeta que se deja (o la nueva, si el cambio falla).
+- **Cambio de carpeta:** sin lecturas ni escrituras de datos de libros en medio, se copia cada `<bookId>.json` del sitio actual al nuevo salvo que el nuevo tenga uno igual de reciente o más (por fecha de modificación; si alguna fecha se desconoce, se conserva el del destino). No se copian `*.corrupt`, temporales ni otros archivos (p. ej. conflictos de sync). Luego se guarda `data-folder.json` y se empieza a usar el nuevo sitio. Si algo falla, se sigue usando el sitio anterior (las copias ya hechas quedan en el destino). Si el sitio actual no se puede leer (permiso revocado, tarjeta retirada), se cambia sin copiar, para poder volver siempre a la memoria interna. Los archivos del sitio que se deja no se borran.
+- **Escritura segura en la carpeta:** SAF no tiene renombrado atómico que sustituya un archivo. Se escribe `<bookId>.json.tmp`, se relee para comprobarlo, se borra el anterior y se renombra la copia. Si la app muere entre el borrado y el renombrado, solo queda la copia comprobada y la siguiente lectura la pone en su sitio (una `.tmp` cortada en la primera escritura de un libro se aparta como corrupta, §4). No hay `fsync`: la durabilidad depende del proveedor. Si el proveedor no permite renombrar, tras comprobar la copia se sobrescribe el archivo en su sitio y se borra la copia; una muerte en medio puede dejarlo incompleto (se aparta como corrupto y se pierde ese progreso).
+- Fusión de conflictos de sync: fuera de alcance; cada archivo es completo y gana el más reciente al cambiar de carpeta.

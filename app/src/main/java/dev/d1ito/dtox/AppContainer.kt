@@ -10,9 +10,12 @@ import dev.d1ito.dtox.data.importing.TextBookParser
 import dev.d1ito.dtox.data.storage.AnnotationRepository
 import dev.d1ito.dtox.data.storage.AtomicFileWriter
 import dev.d1ito.dtox.data.storage.BookDataAnnotationRepository
+import dev.d1ito.dtox.data.storage.BookDataFolder
 import dev.d1ito.dtox.data.storage.BookDataStore
 import dev.d1ito.dtox.data.storage.ContentPreferencesStore
-import dev.d1ito.dtox.data.storage.FileBookDataStore
+import dev.d1ito.dtox.data.storage.DirectoryBookFileStorage
+import dev.d1ito.dtox.data.storage.DocumentTree
+import dev.d1ito.dtox.data.storage.DocumentTreeBookFileStorage
 import dev.d1ito.dtox.data.storage.FileContentPreferencesStore
 import dev.d1ito.dtox.data.storage.FileLibraryIndex
 import dev.d1ito.dtox.data.storage.FileParsedBookCache
@@ -64,6 +67,7 @@ interface AppContainer {
     val textBookParser: BookParser
     val fileWriter: AtomicFileWriter
     val bookDataStore: BookDataStore
+    val bookDataFolder: BookDataFolder
     val libraryIndex: LibraryIndex
     val bookImporter: BookImporter
     val parsedBookCache: ParsedBookCache
@@ -82,11 +86,13 @@ interface AppContainer {
  * @param filesDirectory private app storage for user data (`files/`); holds `library/`, `books/`,
  *   `library-index.json` and `settings.json` (docs/03-architecture.md §Almacenamiento y permisos).
  * @param cacheDirectory private cache (`cache/`) for temporary copies and parsed books.
+ * @param documentTreeOf the folder with the given SAF tree URI, for the data folder (RF-27).
  * @param dispatchers dispatchers given to every dependency.
  */
 class DefaultAppContainer(
     filesDirectory: File,
     cacheDirectory: File,
+    documentTreeOf: (String) -> DocumentTree,
     override val dispatchers: AppDispatchers = AppDispatchers.Production,
 ) : AppContainer {
     private val libraryDirectory = File(filesDirectory, "library")
@@ -109,8 +115,19 @@ class DefaultAppContainer(
 
     override val fileWriter: AtomicFileWriter by lazy { SyncedAtomicFileWriter(dispatchers.io) }
 
-    override val bookDataStore: BookDataStore by lazy {
-        FileBookDataStore(File(filesDirectory, "books"), fileWriter, dispatchers.io)
+    override val bookDataStore: BookDataStore get() = bookDataFolder.store
+
+    override val bookDataFolder: BookDataFolder by lazy {
+        BookDataFolder(
+            locationFile = File(filesDirectory, "data-folder.json"),
+            internalStorage =
+                DirectoryBookFileStorage(File(filesDirectory, "books"), fileWriter, dispatchers.io),
+            folderStorageOf = { treeUri ->
+                DocumentTreeBookFileStorage(documentTreeOf(treeUri), dispatchers.io)
+            },
+            fileWriter = fileWriter,
+            ioDispatcher = dispatchers.io,
+        )
     }
 
     override val libraryIndex: LibraryIndex by lazy {

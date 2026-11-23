@@ -30,22 +30,22 @@ interface FolderAccess {
  *
  * @param contentResolver the application's resolver, which outlives every screen.
  * @param ioDispatcher where the calls to the system run; never the main thread.
+ * @param accessFlags the access kept and given back: read by default, or read and write for the
+ *   data folder (RF-27).
  */
 class PersistableFolderAccess(
     private val contentResolver: ContentResolver,
     private val ioDispatcher: CoroutineDispatcher,
+    private val accessFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION,
 ) : FolderAccess {
     override suspend fun keep(folder: WatchedFolder): Result<Unit> =
         permissionCall(folder) { uri ->
-            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            contentResolver.takePersistableUriPermission(uri, accessFlags)
         }
 
     override suspend fun release(folder: WatchedFolder): Result<Unit> =
         permissionCall(folder) { uri ->
-            contentResolver.releasePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
+            contentResolver.releasePersistableUriPermission(uri, accessFlags)
         }
 
     /** Runs [call] on [folder]'s URI, turning the system's refusal into a failure. */
