@@ -7,7 +7,9 @@ import dev.d1ito.dtox.data.importing.EpubBookParser
 import dev.d1ito.dtox.data.importing.LibraryBookLoader
 import dev.d1ito.dtox.data.importing.Sha256BookIdentifierCalculator
 import dev.d1ito.dtox.data.importing.TextBookParser
+import dev.d1ito.dtox.data.storage.AnnotationRepository
 import dev.d1ito.dtox.data.storage.AtomicFileWriter
+import dev.d1ito.dtox.data.storage.BookDataAnnotationRepository
 import dev.d1ito.dtox.data.storage.BookDataStore
 import dev.d1ito.dtox.data.storage.ContentPreferencesStore
 import dev.d1ito.dtox.data.storage.FileBookDataStore
@@ -71,6 +73,7 @@ interface AppContainer {
     val libraryBookRemover: LibraryBookRemover
     val watchedFolderStore: WatchedFolderStore
     val reminderSettingsStore: ReminderSettingsStore
+    val annotationRepository: AnnotationRepository
 }
 
 /**
@@ -165,5 +168,10 @@ class DefaultAppContainer(
 
     override val reminderSettingsStore: ReminderSettingsStore by lazy {
         FileReminderSettingsStore(settingsDocument)
+    }
+
+    /** On top of [bookDataStore], the one every writer of book data shares. */
+    override val annotationRepository: AnnotationRepository by lazy {
+        BookDataAnnotationRepository(bookDataStore)
     }
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Asking for the notification permission when reminders are turned on (#113). No pressure (D-12). -->
+<resources>
+    <string name="notification_permission_denied">Sin permiso para notificaciones, los avisos siguen desactivados.</string>
+    <string name="notification_permission_blocked">Las notificaciones de D-TOX están desactivadas en el sistema, así que los avisos siguen desactivados. Puedes permitirlas en los ajustes del sistema.</string>
+    <string name="notification_permission_open_settings">Abrir ajustes de notificaciones</string>
+</resources>

@@ -1,6 +1,7 @@
 package dev.d1ito.dtox.data.storage
 
 import dev.d1ito.dtox.domain.BookIdentifier
+import dev.d1ito.dtox.domain.WatchedFolder
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +20,8 @@ import java.time.Instant
  * @property fileName name of the book's copy inside the library directory.
  * @property lastOpenedAt when the reader last opened it; `null` if never.
  * @property finished whether the reader marked it as finished.
+ * @property source the watched-folder document the book was found in; `null` for a book added by
+ *   hand, and after the index is rebuilt until the next folder scan finds it again.
  */
 data class LibraryEntry(
     val bookIdentifier: BookIdentifier,
@@ -27,6 +30,21 @@ data class LibraryEntry(
     val fileName: String,
     val lastOpenedAt: Instant?,
     val finished: Boolean,
+    val source: FolderSource? = null,
+)
+
+/**
+ * Where a book of a watched folder came from (RF-05). The library keeps its own copy, so a book
+ * whose document is gone can still be read; it is only marked [missing].
+ *
+ * @property folder the watched folder that listed the document.
+ * @property documentUri the document's SAF URI inside [folder].
+ * @property missing the last scan of [folder] no longer found the document.
+ */
+data class FolderSource(
+    val folder: WatchedFolder,
+    val documentUri: String,
+    val missing: Boolean = false,
 )
 
 /**
@@ -45,6 +63,12 @@ interface LibraryIndex {
 
     /** Removes the entry of [bookIdentifier]; succeeds when there is none. */
     suspend fun remove(bookIdentifier: BookIdentifier): Result<Unit>
+
+    /**
+     * Replaces every entry with [change] of the current ones, in one durable write; nothing else
+     * changes the index meanwhile.
+     */
+    suspend fun update(change: (List<LibraryEntry>) -> List<LibraryEntry>): Result<Unit>
 
     /** Sets [LibraryEntry.lastOpenedAt] of [bookIdentifier] to now; succeeds when there is none. */
     suspend fun markOpened(bookIdentifier: BookIdentifier): Result<Unit>
@@ -100,6 +124,9 @@ class FileLibraryIndex(
 
     override suspend fun remove(bookIdentifier: BookIdentifier): Result<Unit> =
         locked { replaceWith(current().filterNot { it.bookIdentifier == bookIdentifier }) }
+
+    override suspend fun update(change: (List<LibraryEntry>) -> List<LibraryEntry>): Result<Unit> =
+        locked { replaceWith(change(current())) }
 
     override suspend fun markOpened(bookIdentifier: BookIdentifier): Result<Unit> =
         locked {

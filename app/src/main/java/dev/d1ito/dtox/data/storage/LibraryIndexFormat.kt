@@ -1,6 +1,7 @@
 package dev.d1ito.dtox.data.storage
 
 import dev.d1ito.dtox.domain.BookIdentifier
+import dev.d1ito.dtox.domain.WatchedFolder
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -61,6 +62,7 @@ private data class EntryDocument(
     val file: String,
     val lastOpenedAt: String? = null,
     val finished: Boolean = false,
+    val source: FolderSourceDocument? = null,
 ) {
     /**
      * @throws IllegalArgumentException for an invalid identifier.
@@ -74,6 +76,7 @@ private data class EntryDocument(
             fileName = file,
             lastOpenedAt = lastOpenedAt?.let(Instant::parse),
             finished = finished,
+            source = source?.toSource(),
         )
 
     companion object {
@@ -85,6 +88,20 @@ private data class EntryDocument(
                 file = entry.fileName,
                 lastOpenedAt = entry.lastOpenedAt?.toString(),
                 finished = entry.finished,
+                source = entry.source?.toDocument(),
             )
     }
 }
+
+/** Optional since the first version: older indexes simply have no sources. */
+@Serializable
+private data class FolderSourceDocument(
+    val folder: String,
+    val document: String,
+    val missing: Boolean = false,
+) {
+    fun toSource(): FolderSource = FolderSource(WatchedFolder(folder), document, missing)
+}
+
+private fun FolderSource.toDocument(): FolderSourceDocument =
+    FolderSourceDocument(folder.treeUri, documentUri, missing)

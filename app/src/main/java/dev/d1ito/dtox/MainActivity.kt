@@ -24,11 +24,13 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import dev.d1ito.dtox.data.storage.PersistableFolderAccess
+import dev.d1ito.dtox.data.storage.SafWatchedFolderDocuments
 import dev.d1ito.dtox.domain.ReadingSettings
 import dev.d1ito.dtox.domain.ReadingTheme
 import dev.d1ito.dtox.ui.library.LibraryScreen
 import dev.d1ito.dtox.ui.library.LibraryViewModel
 import dev.d1ito.dtox.ui.reader.BookSearchScreen
+import dev.d1ito.dtox.ui.reader.BookmarkToggle
 import dev.d1ito.dtox.ui.reader.ChapterList
 import dev.d1ito.dtox.ui.reader.ReaderControlActions
 import dev.d1ito.dtox.ui.reader.ReaderControlsBar
@@ -62,7 +64,9 @@ class MainActivity : ComponentActivity() {
     private val container: AppContainer get() = (application as DtoxApplication).container
 
     private val libraryViewModel: LibraryViewModel by viewModels {
-        LibraryViewModel.factory(container)
+        val folderDocuments =
+            SafWatchedFolderDocuments(applicationContext.contentResolver, container.dispatchers.io)
+        LibraryViewModel.factory(container, folderDocuments)
     }
 
     private val readerViewModel: ReaderViewModel by viewModels {
@@ -294,6 +298,9 @@ private fun readingPositionOf(
         onNextChapter = viewModel::onNextChapter,
         onPreviousChapter = viewModel::onPreviousChapter,
         onCenterTap = onCenterTap,
+        onPageShown = { page ->
+            viewModel.annotations.onPageShown(page.startAnchor, page.endAnchor)
+        },
     )
 
 /** The pages, and the controls bar a tap in the center shows; turning a page hides it. */
@@ -307,6 +314,7 @@ private fun PagesWithControls(
     onOpenChapters: () -> Unit,
 ) {
     var controlsVisible by remember { mutableStateOf(false) }
+    val pageBookmarked by viewModel.annotations.pageBookmarked.collectAsState()
     LaunchedEffect(state.position) { controlsVisible = false }
     Box {
         ReaderScreen(
@@ -324,6 +332,10 @@ private fun PagesWithControls(
                     onChapters = onOpenChapters,
                     onTextSettings = setup.onOpenSettings,
                     onSearch = onOpenSearch,
+                    bookmark =
+                        pageBookmarked?.let { bookmarked ->
+                            BookmarkToggle(bookmarked, viewModel.annotations::toggleBookmark)
+                        },
                 ),
             onHide = { controlsVisible = false },
         )

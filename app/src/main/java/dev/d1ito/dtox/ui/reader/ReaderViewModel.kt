@@ -64,6 +64,8 @@ sealed interface ReaderUiState {
  * @param newProgressKeeper creates the keeper of one open book; each book gets its own, so a
  *   save still pending for the previous book never lands in the next one.
  * @param onBookOpened called once a book has loaded, e.g. to stamp it as last opened.
+ * @property annotations annotations and bookmark of the open book; the ViewModel opens and closes
+ *   it with the book, and the reader screens read and change annotations through it.
  * @param scope runs the loading and is cancelled when the ViewModel is cleared.
  */
 class ReaderViewModel(
@@ -71,6 +73,7 @@ class ReaderViewModel(
     private val loadBook: suspend (BookIdentifier) -> Result<LoadedBook>,
     private val newProgressKeeper: () -> ReadingProgressKeeper,
     private val onBookOpened: suspend (BookIdentifier) -> Unit,
+    val annotations: ReaderAnnotations,
     private val scope: CoroutineScope,
 ) : ViewModel(scope) {
     private val saved = SavedReaderState(savedState)
@@ -105,6 +108,7 @@ class ReaderViewModel(
                     loadBook(bookIdentifier).fold(
                         onSuccess = { loaded ->
                             onBookOpened(bookIdentifier)
+                            annotations.open(loaded.book, loaded.fileName)
                             readingStateOf(loaded.book, keeper.open(loaded.book, loaded.fileName))
                         },
                         onFailure = { ReaderUiState.Unavailable },
@@ -124,6 +128,7 @@ class ReaderViewModel(
         flushProgress()
         loading?.cancel()
         loading = null
+        annotations.close()
         progressKeeper = null
         openBookIdentifier = null
     }
@@ -224,6 +229,12 @@ class ReaderViewModel(
                         onBookOpened = { bookIdentifier ->
                             container.libraryIndex.markOpened(bookIdentifier)
                         },
+                        annotations =
+                            ReaderAnnotations(
+                                container.annotationRepository,
+                                Clock.systemUTC(),
+                                scope,
+                            ),
                         scope = scope,
                     )
                 }

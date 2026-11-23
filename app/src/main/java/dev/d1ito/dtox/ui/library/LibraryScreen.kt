@@ -82,6 +82,7 @@ fun LibraryScreen(
             onOpenBook = { entry -> onOpenBook(entry.bookIdentifier) },
             onRemoveBook = { entry -> viewModel.removeBook(entry.bookIdentifier) },
             onOpenSettings = onOpenSettings,
+            onScanFolders = viewModel::scanWatchedFolders,
         ),
     )
 }
@@ -93,12 +94,14 @@ fun LibraryScreen(
  * @property onOpenBook opens the touched book.
  * @property onRemoveBook removes a book the user confirmed to remove.
  * @property onOpenSettings opens the settings; `null` hides the button.
+ * @property onScanFolders looks for books in the watched folders now.
  */
 class LibraryActions(
     val onAddBook: () -> Unit,
     val onOpenBook: (LibraryEntry) -> Unit,
     val onRemoveBook: (LibraryEntry) -> Unit,
     val onOpenSettings: (() -> Unit)? = null,
+    val onScanFolders: () -> Unit = {},
 )
 
 /**
@@ -168,7 +171,10 @@ private fun BookListWithRemoval(
     }
 }
 
-/** The title, "Añadir libro" (disabled while importing), "Ajustes" and the last message. */
+/**
+ * The title, "Añadir libro" (disabled while importing), "Buscar libros ahora" when there are
+ * watched folders (disabled while scanning), "Ajustes" and the last message.
+ */
 @Composable
 private fun LibraryHeader(
     state: LibraryUiState,
@@ -181,6 +187,12 @@ private fun LibraryHeader(
     TextButton(onClick = actions.onAddBook, enabled = !state.isImporting) {
         val label = if (state.isImporting) R.string.library_importing else R.string.library_add
         Text(stringResource(label))
+    }
+    if (state.hasWatchedFolders) {
+        TextButton(onClick = actions.onScanFolders, enabled = !state.isScanning) {
+            val label = if (state.isScanning) R.string.library_scanning else R.string.library_scan
+            Text(stringResource(label))
+        }
     }
     actions.onOpenSettings?.let { open ->
         TextButton(onClick = open) { Text(stringResource(R.string.library_settings)) }
@@ -244,6 +256,7 @@ private fun BookRow(
             color = DTOXTheme.palette.text,
         )
         entry.author?.let { author -> MutedText(author) }
+        if (entry.source?.missing == true) MutedText(stringResource(R.string.library_book_missing))
         Spacer(Modifier.height(entrySpacing))
         HorizontalDivider(color = DTOXTheme.palette.divider)
     }
@@ -265,6 +278,7 @@ private fun LibraryMessage.textResource(): Int =
         LibraryMessage.ImportFailed -> R.string.library_import_failed
         LibraryMessage.LibraryUnavailable -> R.string.library_unavailable
         LibraryMessage.RemoveFailed -> R.string.library_remove_failed
+        LibraryMessage.FolderScanIncomplete -> R.string.library_scan_incomplete
     }
 
 /** Asks the provider for the name and type only when called, which happens off the main thread. */
