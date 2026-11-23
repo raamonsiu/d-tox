@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reader_controls_annotations">Notas</string>
+    <string name="annotations_list_title">Marcas y notas</string>
+    <string name="annotations_list_empty">Este libro aún no tiene marcas ni notas.</string>
+    <string name="annotation_kind_bookmark">Marcador</string>
+    <string name="annotation_kind_highlight">Resaltado</string>
+    <string name="annotation_kind_note">Nota</string>
+    <string name="annotation_row_heading">%1$s · %2$s</string>
+    <string name="annotation_row_excerpt">«%1$s»</string>
+</resources>
