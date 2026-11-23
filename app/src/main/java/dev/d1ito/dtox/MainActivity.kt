@@ -25,6 +25,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import dev.d1ito.dtox.data.storage.PersistableFolderAccess
 import dev.d1ito.dtox.data.storage.SafWatchedFolderDocuments
+import dev.d1ito.dtox.domain.AnchorRange
 import dev.d1ito.dtox.domain.Book
 import dev.d1ito.dtox.domain.BookAnnotation
 import dev.d1ito.dtox.domain.ReadingSettings
@@ -37,6 +38,7 @@ import dev.d1ito.dtox.ui.reader.AnnotationListScreen
 import dev.d1ito.dtox.ui.reader.BookSearchScreen
 import dev.d1ito.dtox.ui.reader.BookmarkToggle
 import dev.d1ito.dtox.ui.reader.ChapterList
+import dev.d1ito.dtox.ui.reader.ReaderAnnotations
 import dev.d1ito.dtox.ui.reader.ReaderControlActions
 import dev.d1ito.dtox.ui.reader.ReaderControlsBar
 import dev.d1ito.dtox.ui.reader.ReaderMessage
@@ -410,6 +412,7 @@ private fun PagesWithControls(
             paginationDispatcher = setup.paginationDispatcher,
             settings = setup.settings,
             book = state.book,
+            highlights = highlightsOf(viewModel.annotations),
         )
         ReaderControlsBar(
             visible = controlsVisible,
@@ -429,6 +432,11 @@ private fun PagesWithControls(
         )
     }
 }
+
+/** The highlight ranges of the book open in the reader, updated as they are stored. */
+@Composable
+private fun highlightsOf(annotations: ReaderAnnotations): List<AnchorRange> =
+    annotations.highlights.collectAsState().value
 
 /** Shown while the book loads: only the theme background. */
 @Composable

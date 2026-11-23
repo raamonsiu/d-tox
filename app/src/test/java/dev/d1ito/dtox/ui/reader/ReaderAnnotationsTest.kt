@@ -4,6 +4,7 @@ import dev.d1ito.dtox.data.storage.BookData
 import dev.d1ito.dtox.data.storage.BookDataAnnotationRepository
 import dev.d1ito.dtox.data.storage.BookSource
 import dev.d1ito.dtox.domain.Anchor
+import dev.d1ito.dtox.domain.AnchorRange
 import dev.d1ito.dtox.domain.AnnotationIdentifier
 import dev.d1ito.dtox.domain.AnnotationMetadata
 import dev.d1ito.dtox.domain.Block
@@ -148,6 +149,22 @@ class ReaderAnnotationsTest {
         annotations.onPageShown(firstPageStart, firstPageEnd)
         assertEquals(emptyList<BookAnnotation>(), annotations.annotations.value)
         assertEquals(false, annotations.pageBookmarked.value)
+    }
+
+    @Test
+    fun highlights_areTheStoredHighlightRanges_andEmptyOnceClosed() {
+        val range = AnchorRange.create(anchor(0, 0, 2), anchor(0, 1, 4)).getOrThrow()
+        val highlight =
+            BookAnnotation.Highlight
+                .create(AnnotationMetadata(AnnotationIdentifier.random(), NOW, NOW), range, "texto")
+                .getOrThrow()
+        val annotations = readerAnnotations(storeWith(highlight, bookmarkAt(firstPageEnd)))
+
+        annotations.open(book, FILE_NAME)
+        assertEquals(listOf(range), annotations.highlights.value)
+
+        annotations.close()
+        assertEquals(emptyList<AnchorRange>(), annotations.highlights.value)
     }
 
     private fun readerAnnotations(store: InMemoryBookDataStore = InMemoryBookDataStore()) =

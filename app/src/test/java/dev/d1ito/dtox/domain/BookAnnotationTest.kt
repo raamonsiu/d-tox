@@ -75,6 +75,21 @@ class BookAnnotationTest {
         assertNull(bookmark.note)
     }
 
+    @Test
+    fun highlightRanges_keepOnlyHighlights_inTheirOrder() {
+        val first = AnchorRange.create(anchor(1), anchor(4)).getOrThrow()
+        val second = AnchorRange.create(anchor(8), anchor(9)).getOrThrow()
+        val annotations =
+            listOf(
+                BookAnnotation.Highlight.create(metadata(), first, "uno").getOrThrow(),
+                BookAnnotation.Bookmark(metadata(), anchor(5)),
+                BookAnnotation.Note.create(metadata(), anchor(6), "Nota").getOrThrow(),
+                BookAnnotation.Highlight.create(metadata(), second, "dos").getOrThrow(),
+            )
+
+        assertEquals(listOf(first, second), annotations.highlightRanges())
+    }
+
     private inline fun <reified E : DocumentModelError> assertFailsWith(result: Result<*>) {
         val error = result.exceptionOrNull()
         assertTrue("Expected ${E::class.simpleName}, got $error", error is E)

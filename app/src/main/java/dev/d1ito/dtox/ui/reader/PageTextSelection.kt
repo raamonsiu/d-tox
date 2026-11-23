@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -28,7 +29,9 @@ import dev.d1ito.dtox.pagination.PagePosition
 import dev.d1ito.dtox.pagination.anchorAt
 import dev.d1ito.dtox.pagination.anchorRangeBetween
 import dev.d1ito.dtox.pagination.drawnRangeOf
+import dev.d1ito.dtox.pagination.drawnRangesOf
 import dev.d1ito.dtox.pagination.extendedTo
+import dev.d1ito.dtox.pagination.highlightShades
 import dev.d1ito.dtox.pagination.length
 import dev.d1ito.dtox.ui.theme.DTOXTheme
 import kotlinx.coroutines.flow.drop
@@ -40,18 +43,23 @@ import kotlin.math.abs
  * [AnchorRange] and drawn from it in the theme highlight, without handles, toolbar or animation.
  * While text is selected a tap only clears it; turning the page drops it.
  *
+ * @param highlights saved highlights of the book, in any chapter; the parts on this page are
+ *   shaded the same way as the selection, which toggles that shade where it covers them.
  * @param onSelectionChange receives each new non-empty selection, or `null` when it is cleared.
  */
-@Suppress("LongParameterList") // Four inputs plus the conventional Compose modifier.
+@Suppress("LongParameterList") // Five inputs plus the conventional Compose modifier.
 @Composable
 internal fun SelectablePageContent(
     page: Page,
     chapter: Chapter,
     styles: ReadingStyles,
     modifier: Modifier = Modifier,
+    highlights: List<AnchorRange> = emptyList(),
     onSelectionChange: (AnchorRange?) -> Unit = {},
 ) {
     val selection = remember(page, chapter) { PageSelection(page, chapter) }
+    val highlightedOnPage =
+        remember(page, chapter, highlights) { page.drawnRangesOf(chapter.index, highlights) }
     val reportSelection by rememberUpdatedState(onSelectionChange)
     LaunchedEffect(selection) {
         snapshotFlow { selection.range?.takeIf { range -> range.start < range.end } }
@@ -64,7 +72,7 @@ internal fun SelectablePageContent(
         styles,
         modifier
             .onGloballyPositioned { coordinates -> selection.textLayouts.page = coordinates }
-            .drawsSelection(selection, DTOXTheme.palette.highlight)
+            .drawsShades(selection, highlightedOnPage, DTOXTheme.palette.highlight)
             .tapClearsSelection(selection)
             .longPressSelectsText(selection),
         selection.textLayouts,
@@ -207,18 +215,40 @@ private fun Modifier.tapClearsSelection(selection: PageSelection): Modifier =
         }
     }
 
-/** Shades the selected part of every fragment behind its text. */
-private fun Modifier.drawsSelection(
+/**
+ * Shades, behind the text of every fragment, the saved highlights and the selected part in
+ * [highlight], as [highlightShades] combines them.
+ *
+ * @param highlightedOnPage drawn offsets of the saved highlights, by fragment index.
+ */
+private fun Modifier.drawsShades(
     selection: PageSelection,
+    highlightedOnPage: Map<Int, List<IntRange>>,
     highlight: Color,
 ): Modifier =
     drawBehind {
-        val range = selection.range ?: return@drawBehind
+        val range = selection.range
         selection.textLayouts.placedTexts().forEach { placed ->
-            val drawn =
-                selection.page.drawnRangeOf(placed.fragmentIndex, selection.chapter.index, range)
-                    ?: return@forEach
-            val shape = placed.layout.getPathForRange(drawn.first, drawn.last + 1)
-            translate(placed.origin.x, placed.origin.y) { drawPath(shape, highlight) }
+            val selected =
+                range?.let { selectedRange ->
+                    selection.page.drawnRangeOf(
+                        placed.fragmentIndex,
+                        selection.chapter.index,
+                        selectedRange,
+                    )
+                }
+            val highlighted = highlightedOnPage[placed.fragmentIndex].orEmpty()
+            drawShades(placed, highlightShades(highlighted, selected), highlight)
         }
     }
+
+/** Fills the text of [placed] at each of the drawn offsets in [shades]. */
+private fun DrawScope.drawShades(
+    placed: PlacedText,
+    shades: List<IntRange>,
+    color: Color,
+) = translate(placed.origin.x, placed.origin.y) {
+    shades.forEach { shade ->
+        drawPath(placed.layout.getPathForRange(shade.first, shade.last + 1), color)
+    }
+}
