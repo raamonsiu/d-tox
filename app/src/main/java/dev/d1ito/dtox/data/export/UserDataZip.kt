@@ -14,12 +14,12 @@ import java.util.zip.ZipOutputStream
 /** Version of the export zip layout (docs/02-data-formats.md §9); an importer checks it. */
 const val EXPORT_FORMAT_VERSION = 1
 
-private const val EXPORT_FORMAT_NAME = "dtox-export"
-private const val MANIFEST_ENTRY = "manifest.json"
-private const val SETTINGS_FILE = "settings.json"
-private const val BOOK_DATA_DIRECTORY = "books"
-private const val LIBRARY_DIRECTORY = "library"
-private const val BOOK_DATA_EXTENSION = ".json"
+internal const val EXPORT_FORMAT_NAME = "dtox-export"
+internal const val MANIFEST_ENTRY = "manifest.json"
+internal const val SETTINGS_FILE = "settings.json"
+internal const val BOOK_DATA_DIRECTORY = "books"
+internal const val LIBRARY_DIRECTORY = "library"
+internal const val BOOK_DATA_EXTENSION = ".json"
 
 /** Leftovers that are never user data: atomic writer temporaries and set-aside corrupt files. */
 private val leftoverExtensions = listOf(".tmp", ".corrupt")

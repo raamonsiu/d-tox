@@ -1,0 +1,7 @@
+<resources>
+    <string name="import_data_action">Importar datos</string>
+    <string name="import_data_running">Importando…</string>
+    <string name="import_data_done">Datos importados.</string>
+    <string name="import_data_invalid">El archivo no es una exportación de D-TOX que esta versión pueda importar. No se ha cambiado nada.</string>
+    <string name="import_data_failed">No se pudieron importar los datos.</string>
+</resources>
