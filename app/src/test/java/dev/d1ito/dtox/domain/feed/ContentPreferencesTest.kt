@@ -1,9 +1,31 @@
 package dev.d1ito.dtox.domain.feed
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
+
+private fun readingOf(
+    category: ShortReadCategory,
+    minutes: Int,
+): ShortRead =
+    ShortRead(
+        id = "lectura-001",
+        title = "Lectura",
+        author = null,
+        category = category,
+        tags = emptyList(),
+        minutes = minutes,
+        words = 1000,
+        license = "PD",
+        source = ShortReadSource("Wikisource", "https://es.wikisource.org/"),
+        translator = null,
+        path = "items/lectura-001.md",
+        sha256 = "sha",
+        publishedAt = LocalDate.of(2026, 10, 10),
+    )
 
 class ContentPreferencesTest {
     private val philosophyOnly =
@@ -79,5 +101,20 @@ class ContentPreferencesTest {
             setOf(history),
             (error as ContentPreferencesError.UnknownCategory).rejectedCategories,
         )
+    }
+
+    @Test
+    fun accepts_onlyReadingsInAChosenCategoryAndDuration() {
+        val shortPhilosophy =
+            philosophyOnly.edited(durations = setOf(ShortReadDuration.SHORT)).getOrThrow()
+
+        assertTrue(shortPhilosophy.accepts(readingOf(ShortReadCategory.PHILOSOPHY, 5)))
+        assertFalse(shortPhilosophy.accepts(readingOf(ShortReadCategory.SCIENCE, 5)))
+        assertFalse(shortPhilosophy.accepts(readingOf(ShortReadCategory.PHILOSOPHY, 10)))
+    }
+
+    @Test
+    fun accepts_noReadingWhoseMinutesAreNoBucket() {
+        assertFalse(ContentPreferences.Default.accepts(readingOf(ShortReadCategory.PHILOSOPHY, 8)))
     }
 }

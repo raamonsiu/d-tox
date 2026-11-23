@@ -167,6 +167,7 @@ Feed estático servido por HTTPS (p. ej. GitHub Pages). Detalle del pipeline en 
 - `minutes` se calcula con ~200 palabras/min y se redondea a la duración "bucket" (5/10/20).
 - `license` ∈ `PD` (dominio público), `CC-BY`, `CC-BY-SA`, etc.
 - `sha256` permite verificar integridad y deduplicar.
+- El cliente descarga `index.json` y cada `items/<id>.md` solo por HTTPS (también tras redirecciones), con tiempos de espera y tamaño máximo, y solo las lecturas nuevas que encajan en las preferencias (§5 `content`). Un cuerpo cuyo `sha256` no coincide no se cachea y se reintenta en la siguiente sincronización.
 
 ### `items/<id>.md`
 
