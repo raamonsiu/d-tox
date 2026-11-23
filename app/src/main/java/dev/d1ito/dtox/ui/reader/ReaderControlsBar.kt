@@ -42,12 +42,14 @@ private val minimumTouchTarget = 48.dp
  * @property onChapters opens the chapter list.
  * @property onTextSettings opens the text settings.
  * @property onSearch opens the search inside the book.
+ * @property bookmark marks or unmarks the page being read.
  */
 class ReaderControlActions(
     val onBack: () -> Unit,
     val onChapters: (() -> Unit)? = null,
     val onTextSettings: (() -> Unit)? = null,
     val onSearch: (() -> Unit)? = null,
+    val bookmark: BookmarkToggle? = null,
 )
 
 /**
@@ -105,6 +107,7 @@ private fun ControlButtons(
         actions.onSearch?.let { open ->
             ControlButton(R.string.reader_controls_search, open, onHide)
         }
+        actions.bookmark?.let { toggle -> BookmarkButton(toggle) }
     }
 }
 

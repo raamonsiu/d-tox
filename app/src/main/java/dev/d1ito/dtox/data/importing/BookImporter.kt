@@ -1,6 +1,8 @@
 package dev.d1ito.dtox.data.importing
 
 import dev.d1ito.dtox.data.storage.AtomicFileWriter
+import dev.d1ito.dtox.data.storage.FolderSource
+import dev.d1ito.dtox.data.storage.LibraryEntry
 import dev.d1ito.dtox.domain.Book
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -34,6 +36,21 @@ data class ImportedBook(
     val file: File,
     val wasAlreadyInLibrary: Boolean,
 )
+
+/**
+ * @param source the watched-folder document it came from, `null` for a book added by hand.
+ * @return the library entry of a book listed for the first time: never opened, not finished.
+ */
+fun ImportedBook.newLibraryEntry(source: FolderSource? = null): LibraryEntry =
+    LibraryEntry(
+        bookIdentifier = book.identifier,
+        title = book.metadata.title,
+        author = book.metadata.author,
+        fileName = file.name,
+        lastOpenedAt = null,
+        finished = false,
+        source = source,
+    )
 
 /** Why a file could not be imported (besides the [BookParseError]s of the parsers). */
 sealed class BookImportError(
@@ -99,6 +116,12 @@ class BookImporter(
             }
         }
     }
+
+    /** @return whether [import] would accept a file with this name and type (not its content). */
+    fun supports(
+        fileName: String,
+        mimeType: String?,
+    ): Boolean = supportedExtensionOf(fileName, mimeType) != null
 
     /** @throws IOException if the staging copy cannot be read or renamed. */
     private suspend fun storeAndParse(

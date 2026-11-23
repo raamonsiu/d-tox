@@ -21,6 +21,7 @@ import dev.d1ito.dtox.domain.ReminderSettings
 import dev.d1ito.dtox.domain.ReminderSettingsError
 import dev.d1ito.dtox.ui.theme.DTOXTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -37,6 +38,24 @@ class ReminderSettingsSectionTest {
     private var settings by mutableStateOf(ReminderSettings.Default)
     private var rejectedChange by mutableStateOf<ReminderSettingsError?>(null)
     private var receivedEdits = 0
+    private var settingsOpened = 0
+
+    /** Lets every switch-on through, as when notifications are already allowed. */
+    private val allowingGate =
+        NotificationPermissionGate(
+            refusal = null,
+            canOpenSystemSettings = true,
+            turnOn = { settings = settings.edited(enabled = true).getOrThrow() },
+            openSystemSettings = {},
+        )
+
+    private fun refusingGate(refusal: NotificationRefusal) =
+        NotificationPermissionGate(
+            refusal = refusal,
+            canOpenSystemSettings = true,
+            turnOn = {},
+            openSystemSettings = { settingsOpened++ },
+        )
 
     private fun text(
         resource: Int,
@@ -47,7 +66,7 @@ class ReminderSettingsSectionTest {
     private fun shown(time: LocalTime): String =
         time.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
 
-    private fun showReminders() {
+    private fun showReminders(gate: NotificationPermissionGate = allowingGate) {
         composeRule.setContent {
             DTOXTheme {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
@@ -56,6 +75,7 @@ class ReminderSettingsSectionTest {
                             receivedEdits++
                             settings.edit().onSuccess { edited -> settings = edited }
                         },
+                        gate,
                     )
                 }
             }
@@ -108,5 +128,38 @@ class ReminderSettingsSectionTest {
         showReminders()
 
         composeRule.onNodeWithText(text(R.string.reminders_error_quiet_time)).assertIsDisplayed()
+    }
+
+    @Test
+    fun deniedPermission_keepsRemindersOffWithASentence() {
+        showReminders(refusingGate(NotificationRefusal.DENIED))
+
+        composeRule.onNodeWithText(text(R.string.settings_on)).performClick()
+
+        assertFalse(settings.enabled)
+        composeRule
+            .onNodeWithText(
+                text(R.string.notification_permission_denied),
+            ).assertIsDisplayed()
+        composeRule
+            .onNodeWithText(text(R.string.notification_permission_open_settings))
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun blockedPermission_opensSystemSettingsOnlyOnTap() {
+        showReminders(refusingGate(NotificationRefusal.BLOCKED))
+
+        composeRule
+            .onNodeWithText(
+                text(R.string.notification_permission_blocked),
+            ).assertIsDisplayed()
+        assertEquals(0, settingsOpened)
+        composeRule
+            .onNodeWithText(text(R.string.notification_permission_open_settings))
+            .performClick()
+
+        assertEquals(1, settingsOpened)
+        assertFalse(settings.enabled)
     }
 }

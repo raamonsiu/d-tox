@@ -35,6 +35,9 @@ import java.time.format.FormatStyle
 /** Receives each edit of the current reminder settings. */
 typealias ReminderEdit = (ReminderSettings.() -> Result<ReminderSettings>) -> Unit
 
+/** The edit that turns reminders on, once notifications can be shown. */
+private val turnedOn: ReminderSettings.() -> Result<ReminderSettings> = { edited(enabled = true) }
+
 /** Times as the user's locale writes them, e.g. "19:00". */
 private val shortTimeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
 
@@ -69,9 +72,16 @@ fun ReminderSettingsViewModel.reminderSettings(): ReminderSettingsSectionState? 
  * reminders are on, how many a day, their times and the quiet hours. A time is changed in place
  * with a plain [TimeInput]; no dialog, no animation. Nothing is shown while [reminders] is `null`
  * (not read from disk yet).
+ *
+ * @param notificationPermission turning reminders on goes through it: the permission is asked
+ *   then, and a refusal is explained under the switch.
  */
 @Composable
-fun ReminderSettingsSection(reminders: ReminderSettingsSectionState?) {
+fun ReminderSettingsSection(
+    reminders: ReminderSettingsSectionState?,
+    notificationPermission: NotificationPermissionGate =
+        rememberNotificationPermissionGate { reminders?.onChange?.invoke(turnedOn) },
+) {
     if (reminders == null) return
     val settings = reminders.settings
     val onChange = reminders.onChange
@@ -79,8 +89,9 @@ fun ReminderSettingsSection(reminders: ReminderSettingsSectionState?) {
     if (reminders.saveFailed) MutedText(stringResource(R.string.reminders_save_failed))
     reminders.rejectedChange?.let { error -> MutedText(stringResource(messageOf(error))) }
     ChoiceSetting(R.string.reminders_enabled, switchLabels, settings.enabled) { on ->
-        onChange { edited(enabled = on) }
+        if (on) notificationPermission.turnOn() else onChange { edited(enabled = false) }
     }
+    NotificationRefusalNote(notificationPermission)
     if (settings.enabled) {
         val count = settings.remindersPerDay
         StepperSetting(

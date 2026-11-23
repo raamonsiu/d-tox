@@ -142,6 +142,7 @@ private class PaginatedChapter(
  * @property onNextChapter called when the reader turns forward from the last page.
  * @property onPreviousChapter called when the reader turns back from the first page.
  * @property onCenterTap called for a tap in the center of the page (between the edge zones).
+ * @property onPageShown receives every page shown, the restored one included.
  */
 class ReadingPosition(
     val restoredAnchor: Anchor?,
@@ -149,6 +150,7 @@ class ReadingPosition(
     val onNextChapter: () -> Unit = {},
     val onPreviousChapter: () -> Unit = {},
     val onCenterTap: () -> Unit = {},
+    val onPageShown: (Page) -> Unit = {},
 )
 
 /**
@@ -217,6 +219,7 @@ private fun ChapterPager(
         val pagerState = remember { PagerState(currentPage = initialPage) { pages.size } }
         val animationsEnabled = rememberPageTurnAnimates(pageAnimationSetting)
         ReportSettledPages(pagerState, pages, position.onPageSettled)
+        ReportShownPages(pagerState, pages, position.onPageShown)
         HorizontalPager(
             state = pagerState,
             flingBehavior =
@@ -264,6 +267,18 @@ private fun ReportSettledPages(
         snapshotFlow { pagerState.settledPage }.drop(1).collect { page ->
             onPageSettled(pages[page].startAnchor)
         }
+    }
+}
+
+/** Calls [onPageShown] with the page the pager rests on, the restored one first. */
+@Composable
+private fun ReportShownPages(
+    pagerState: PagerState,
+    pages: List<Page>,
+    onPageShown: (Page) -> Unit,
+) {
+    LaunchedEffect(pagerState, pages) {
+        snapshotFlow { pagerState.settledPage }.collect { page -> onPageShown(pages[page]) }
     }
 }
 

@@ -55,6 +55,7 @@ class AppContainerTest {
         assertSame(container.readingSettingsStore, container.readingSettingsStore)
         assertSame(container.contentPreferencesStore, container.contentPreferencesStore)
         assertSame(container.reminderSettingsStore, container.reminderSettingsStore)
+        assertSame(container.annotationRepository, container.annotationRepository)
     }
 
     @Test
