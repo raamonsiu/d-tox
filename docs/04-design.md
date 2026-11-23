@@ -93,6 +93,12 @@ El texto corriente **no destaca**: color `text` sobre `background`, sin negritas
 - Toque en bordes izquierdo/derecho o deslizamiento → cambia de página.
 - Indicador de progreso: línea de 1 px o texto `12 / 148` muy tenue; desactivable.
 - Pulsación larga → selección → acciones "Resaltar" / "Nota" (v1).
+  - Mientras hay selección, "Resaltar" aparece como texto en una franja del ancho de la columna con fondo
+    `background` y línea `divider` del lado del texto, sin color de acento, icono ni animación. Va abajo
+    del área de la página; si la selección llega a esa franja y arriba hay sitio, va arriba, para no tapar
+    el texto seleccionado. Tocarla guarda el resaltado y quita la selección.
+  - Si la selección cae entera dentro de un resaltado ya guardado, "Resaltar" no aparece (no añadiría
+    nada). Tampoco aparece si las anotaciones del libro no se pueden guardar (archivo ilegible).
 - Resaltados: sombreado sutil (`highlight`); notas: pequeño punto `·` al final del fragmento (D-39).
   - El punto es el carácter `·` de la fuente de lectura en `textMuted`, dibujado tras el último carácter
     del fragmento anotado (en una nota de posición, en su ancla) sin alterar la paginación. Un resaltado

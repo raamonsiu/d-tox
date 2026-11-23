@@ -69,8 +69,10 @@ private val readingColumnMaxWidth = 600.dp
  *   the progress indicator shows.
  * @param highlights ranges of the book's saved highlights, shaded on the pages they fall on;
  *   they never change the pagination.
+ * @param onHighlight highlights the text selected on a page, offered as «Resaltar» while there is
+ *   a selection; `null` offers nothing, e.g. while annotations cannot be stored.
  */
-@Suppress("LongParameterList") // Six inputs plus the conventional Compose modifier.
+@Suppress("LongParameterList") // Seven inputs plus the conventional Compose modifier.
 @Composable
 fun ReaderScreen(
     chapter: Chapter,
@@ -80,6 +82,7 @@ fun ReaderScreen(
     settings: ReadingSettings = ReadingSettings.Default,
     book: Book? = null,
     highlights: List<AnchorRange> = emptyList(),
+    onHighlight: ((AnchorRange) -> Unit)? = null,
 ) {
     val styles = rememberReadingStyles(settings)
     val paginator = remember(paginationDispatcher) { CachingPaginator(paginationDispatcher) }
@@ -88,6 +91,7 @@ fun ReaderScreen(
         contentAlignment = Alignment.TopCenter,
     ) {
         val columnWidth = min(maxWidth, readingColumnMaxWidth)
+        val shading = PageHighlighting(highlights, onHighlight)
         val pages =
             viewportOf(columnWidth)?.let { size ->
                 paginator
@@ -100,7 +104,7 @@ fun ReaderScreen(
             pages.isFailure -> ReaderMessage(stringResource(R.string.reader_chapter_unavailable))
             else ->
                 ChapterPager(
-                    PaginatedChapter(chapter, pages.getOrThrow(), columnWidth, styles, highlights),
+                    PaginatedChapter(chapter, pages.getOrThrow(), columnWidth, styles, shading),
                     position,
                     settings.pageAnimation,
                     settings.progressIndicator,
@@ -132,13 +136,23 @@ private fun Modifier.readerPageArea(horizontalMargin: Dp): Modifier =
         .windowInsetsPadding(WindowInsets.safeDrawing)
         .padding(horizontal = horizontalMargin, vertical = pageVerticalMargin)
 
-/** A chapter with its pages for one column width, and the book's highlights to shade on them. */
+/**
+ * The book's highlights to shade on the pages, and how to highlight a selection.
+ *
+ * @property onHighlight `null` when no highlight can be made.
+ */
+private class PageHighlighting(
+    val highlights: List<AnchorRange>,
+    val onHighlight: ((AnchorRange) -> Unit)?,
+)
+
+/** A chapter with its pages for one column width, and the book's highlights on them. */
 private class PaginatedChapter(
     val chapter: Chapter,
     val pages: List<Page>,
     val columnWidth: Dp,
     val styles: ReadingStyles,
-    val highlights: List<AnchorRange>,
+    val highlighting: PageHighlighting,
 )
 
 /**
@@ -255,7 +269,8 @@ private fun PageAt(
             paginated.chapter,
             paginated.styles,
             Modifier.width(paginated.columnWidth),
-            paginated.highlights,
+            paginated.highlighting.highlights,
+            onHighlight = paginated.highlighting.onHighlight,
         )
     }
 }

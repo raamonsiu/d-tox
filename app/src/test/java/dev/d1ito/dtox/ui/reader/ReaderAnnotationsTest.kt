@@ -1,28 +1,17 @@
 package dev.d1ito.dtox.ui.reader
 
-import dev.d1ito.dtox.data.storage.BookData
-import dev.d1ito.dtox.data.storage.BookDataAnnotationRepository
 import dev.d1ito.dtox.data.storage.BookSource
 import dev.d1ito.dtox.domain.Anchor
 import dev.d1ito.dtox.domain.AnchorRange
 import dev.d1ito.dtox.domain.AnnotationIdentifier
 import dev.d1ito.dtox.domain.AnnotationMetadata
-import dev.d1ito.dtox.domain.Block
-import dev.d1ito.dtox.domain.Book
 import dev.d1ito.dtox.domain.BookAnnotation
-import dev.d1ito.dtox.domain.BookIdentifier
-import dev.d1ito.dtox.domain.BookMetadata
-import dev.d1ito.dtox.domain.Chapter
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.IOException
-import java.time.Clock
 import java.time.Instant
-import java.time.ZoneOffset
 
 private const val IDENTIFIER = "sha256:0123456789abcdef0123456789abcdef"
 private const val OTHER_IDENTIFIER = "sha256:fedcba9876543210fedcba9876543210"
@@ -30,7 +19,7 @@ private const val FILE_NAME = "libro.txt"
 private val NOW: Instant = Instant.parse("2026-11-22T10:00:00Z")
 
 class ReaderAnnotationsTest {
-    private val book = bookWith(IDENTIFIER)
+    private val book = twoParagraphBook(IDENTIFIER)
 
     /** First page: block 0 whole and block 1 up to offset 5; second page: the rest. */
     private val firstPageStart = anchor(0, 0, 0)
@@ -145,7 +134,7 @@ class ReaderAnnotationsTest {
         assertNull(annotations.annotations.value)
         assertNull(annotations.pageBookmarked.value)
 
-        annotations.open(bookWith(OTHER_IDENTIFIER), FILE_NAME)
+        annotations.open(twoParagraphBook(OTHER_IDENTIFIER), FILE_NAME)
         annotations.onPageShown(firstPageStart, firstPageEnd)
         assertEquals(emptyList<BookAnnotation>(), annotations.annotations.value)
         assertEquals(false, annotations.pageBookmarked.value)
@@ -168,25 +157,10 @@ class ReaderAnnotationsTest {
     }
 
     private fun readerAnnotations(store: InMemoryBookDataStore = InMemoryBookDataStore()) =
-        ReaderAnnotations(
-            BookDataAnnotationRepository(store),
-            Clock.fixed(NOW, ZoneOffset.UTC),
-            CoroutineScope(Dispatchers.Unconfined),
-        )
+        readerAnnotationsOver(store, NOW)
 
     private fun storeWith(vararg stored: BookAnnotation): InMemoryBookDataStore =
-        InMemoryBookDataStore(
-            listOf(
-                BookData(
-                    bookIdentifier = book.identifier,
-                    title = "Libro",
-                    author = null,
-                    source = BookSource(FILE_NAME, NOW),
-                    progress = null,
-                    annotations = stored.toList(),
-                ),
-            ),
-        )
+        storeHolding(book, stored.toList(), BookSource(FILE_NAME, NOW))
 
     private fun bookmarkAt(start: Anchor): BookAnnotation.Bookmark =
         BookAnnotation.Bookmark(AnnotationMetadata(AnnotationIdentifier.random(), NOW, NOW), start)
@@ -196,22 +170,4 @@ class ReaderAnnotationsTest {
         block: Int,
         offset: Int,
     ): Anchor = Anchor.create(chapter, block, offset).getOrThrow()
-
-    private fun bookWith(identifier: String): Book =
-        Book
-            .create(
-                BookIdentifier.parse(identifier).getOrThrow(),
-                BookMetadata(title = "Libro", author = null, language = null),
-                listOf(
-                    Chapter
-                        .create(
-                            0,
-                            null,
-                            listOf(
-                                Block.Paragraph("Primer párrafo."),
-                                Block.Paragraph("Otro párrafo."),
-                            ),
-                        ).getOrThrow(),
-                ),
-            ).getOrThrow()
 }

@@ -4,6 +4,10 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.BoxWithConstraintsScope
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -12,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -21,9 +26,11 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
 import dev.d1ito.dtox.domain.AnchorRange
 import dev.d1ito.dtox.domain.Chapter
+import dev.d1ito.dtox.domain.covers
 import dev.d1ito.dtox.pagination.Page
 import dev.d1ito.dtox.pagination.PagePosition
 import dev.d1ito.dtox.pagination.anchorAt
@@ -46,8 +53,12 @@ import kotlin.math.abs
  * @param highlights saved highlights of the book, in any chapter; the parts on this page are
  *   shaded the same way as the selection, which toggles that shade where it covers them.
  * @param onSelectionChange receives each new non-empty selection, or `null` when it is cleared.
+ * @param onHighlight highlights a selection; while text is selected it is offered as «Resaltar»
+ *   in a [HighlightBar] at the bottom (or top) of the page area, which fills the height given,
+ *   unless the selection already lies inside one of [highlights]. Tapping it clears the selection.
+ *   `null` offers no action, e.g. while annotations cannot be stored.
  */
-@Suppress("LongParameterList") // Five inputs plus the conventional Compose modifier.
+@Suppress("LongParameterList") // Six inputs plus the conventional Compose modifier.
 @Composable
 internal fun SelectablePageContent(
     page: Page,
@@ -56,6 +67,7 @@ internal fun SelectablePageContent(
     modifier: Modifier = Modifier,
     highlights: List<AnchorRange> = emptyList(),
     onSelectionChange: (AnchorRange?) -> Unit = {},
+    onHighlight: ((AnchorRange) -> Unit)? = null,
 ) {
     val selection = remember(page, chapter) { PageSelection(page, chapter) }
     val highlightedOnPage =
@@ -66,17 +78,48 @@ internal fun SelectablePageContent(
             .drop(1)
             .collect { range -> reportSelection(range) }
     }
-    PageContent(
-        page,
-        chapter,
-        styles,
-        modifier
-            .onGloballyPositioned { coordinates -> selection.textLayouts.page = coordinates }
-            .drawsShades(selection, highlightedOnPage, DTOXTheme.palette.highlight)
-            .tapClearsSelection(selection)
-            .longPressSelectsText(selection),
-        selection.textLayouts,
-    )
+    BoxWithConstraints(modifier = modifier.fillMaxHeight()) {
+        PageContent(
+            page,
+            chapter,
+            styles,
+            Modifier
+                .fillMaxWidth()
+                .onGloballyPositioned { coordinates -> selection.textLayouts.page = coordinates }
+                .drawsShades(selection, highlightedOnPage, DTOXTheme.palette.highlight)
+                .tapClearsSelection(selection)
+                .longPressSelectsText(selection),
+            selection.textLayouts,
+        )
+        onHighlight?.let { highlight -> HighlightBarFor(selection, highlights, highlight) }
+    }
+}
+
+/**
+ * The «Resaltar» bar of [selection], placed where it does not cover the selected text; nothing
+ * while no text is selected or the selection lies inside one of [highlights]. Tapping it passes
+ * the selection to [onHighlight] and clears it.
+ */
+@Composable
+private fun BoxWithConstraintsScope.HighlightBarFor(
+    selection: PageSelection,
+    highlights: List<AnchorRange>,
+    onHighlight: (AnchorRange) -> Unit,
+) {
+    val selected = selection.range
+    if (selected == null || highlights.any { highlighted -> highlighted.covers(selected) }) return
+    val barHeight = with(LocalDensity.current) { highlightBarHeight.toPx() }
+    val placement =
+        highlightBarPlacement(selection.selectedSpan(), constraints.maxHeight.toFloat(), barHeight)
+    val alignment =
+        when (placement) {
+            HighlightBarPlacement.BOTTOM -> Alignment.BottomCenter
+            HighlightBarPlacement.TOP -> Alignment.TopCenter
+        }
+    HighlightBar(placement, Modifier.align(alignment)) {
+        onHighlight(selected)
+        selection.clear()
+    }
 }
 
 /**
@@ -133,6 +176,13 @@ class PlacedText(
 
     /** Offset in the drawn text of the character boundary nearest to [point]. */
     fun offsetAt(point: Offset): Int = layout.getOffsetForPosition(point - origin)
+
+    /** Top and bottom, in page coordinates, of the lines that show the drawn offsets [drawn]. */
+    fun linesSpanOf(drawn: IntRange): ClosedFloatingPointRange<Float> {
+        val top = layout.getLineTop(layout.getLineForOffset(drawn.first))
+        val bottom = layout.getLineBottom(layout.getLineForOffset(drawn.last))
+        return (origin.y + top)..(origin.y + bottom)
+    }
 }
 
 /**
@@ -183,6 +233,22 @@ private class PageSelection(
     fun clear() {
         pressedWord = null
         range = null
+    }
+
+    /**
+     * @return top and bottom, in page coordinates, of the lines that show the selection; `null`
+     *   when nothing is selected or its text is not laid out.
+     */
+    fun selectedSpan(): ClosedFloatingPointRange<Float>? {
+        val selected = range ?: return null
+        val spans =
+            textLayouts.placedTexts().mapNotNull { placed ->
+                page
+                    .drawnRangeOf(placed.fragmentIndex, chapter.index, selected)
+                    ?.let(placed::linesSpanOf)
+            }
+        if (spans.isEmpty()) return null
+        return spans.minOf { span -> span.start }..spans.maxOf { span -> span.endInclusive }
     }
 
     private fun nearestTextTo(point: Offset): PlacedText? =

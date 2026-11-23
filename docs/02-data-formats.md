@@ -54,7 +54,9 @@ Una posición es independiente de la paginación (que depende de pantalla, fuent
 
 **Reubicación:** si al cargar `quote` no coincide con el texto en `(chapter, block, offset)`, se busca en el mismo bloque, luego en el capítulo, y en último caso se cae al inicio del bloque/capítulo.
 
-**Rango (resaltado):** `start` y `end` son dos anclas; `end` no necesita `quote`.
+**Rango (resaltado):** `start` y `end` son dos anclas; `end` no necesita `quote`. El `text` de un resaltado
+es el texto exacto entre ambas (`end` exclusivo); si cruza bloques, la parte de cada uno se une con un salto
+de línea (`\n`), y los separadores o bloques sin caracteres en el rango no añaden nada.
 
 La página mostrada **no** se persiste, solo se calcula: `página = f(ancla, viewport, tipografía)`.
 

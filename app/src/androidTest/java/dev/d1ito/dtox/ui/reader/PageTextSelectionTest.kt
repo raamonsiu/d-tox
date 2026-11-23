@@ -5,15 +5,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.test.TouchInjectionScope
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import dev.d1ito.dtox.R
 import dev.d1ito.dtox.domain.Anchor
 import dev.d1ito.dtox.domain.AnchorRange
 import dev.d1ito.dtox.domain.Block
@@ -96,6 +100,44 @@ class PageTextSelectionTest {
     }
 
     @Test
+    fun longPress_offersResaltar_whichHighlightsTheSelection_andClearsIt() {
+        val highlighted = mutableListOf<AnchorRange>()
+        val reported = showSelectablePage(onHighlight = { range -> highlighted += range })
+        val first = boundsOf(FIRST)
+        composeRule.onNodeWithText(highlightLabel()).assertDoesNotExist()
+
+        composeRule.onRoot().performTouchInput {
+            longClick(
+                Offset(first.left + 4f, first.top + 4f),
+            )
+        }
+        composeRule.onNodeWithText(highlightLabel()).assertIsDisplayed().performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(anchor(0, "Nadie".length), highlighted.single().end)
+        assertNull(reported.last())
+        composeRule.onNodeWithText(highlightLabel()).assertDoesNotExist()
+    }
+
+    @Test
+    fun selectionInsideAHighlight_offersNoResaltar() {
+        val wholeFirstBlock = AnchorRange.create(anchor(0, 0), anchor(0, FIRST.length)).getOrThrow()
+        val reported =
+            showSelectablePage(highlights = listOf(wholeFirstBlock), onHighlight = {})
+        val first = boundsOf(FIRST)
+
+        composeRule.onRoot().performTouchInput {
+            longClick(
+                Offset(first.left + 4f, first.top + 4f),
+            )
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(anchor(0, 0), reported.last()?.start?.withoutQuote())
+        composeRule.onNodeWithText(highlightLabel()).assertDoesNotExist()
+    }
+
+    @Test
     fun selectingInTheReader_neitherTurnsThePageNorTapsTheCenter_andATapOnlyClearsIt() {
         var settledPages = 0
         var centerTaps = 0
@@ -134,7 +176,10 @@ class PageTextSelectionTest {
         assertEquals(1, centerTaps)
     }
 
-    private fun showSelectablePage(): List<AnchorRange?> {
+    private fun showSelectablePage(
+        highlights: List<AnchorRange> = emptyList(),
+        onHighlight: ((AnchorRange) -> Unit)? = null,
+    ): List<AnchorRange?> {
         val reported = mutableListOf<AnchorRange?>()
         composeRule.setContent {
             DTOXTheme {
@@ -143,13 +188,20 @@ class PageTextSelectionTest {
                     chapter,
                     readingStyles(),
                     Modifier.width(320.dp),
+                    highlights,
                     onSelectionChange = { range -> reported += range },
+                    onHighlight = onHighlight,
                 )
             }
         }
         composeRule.waitForIdle()
         return reported
     }
+
+    private fun highlightLabel(): String =
+        InstrumentationRegistry.getInstrumentation().targetContext.getString(
+            R.string.reader_highlight,
+        )
 
     private fun boundsOf(text: String): Rect =
         composeRule.onNodeWithText(text).fetchSemanticsNode().boundsInRoot
