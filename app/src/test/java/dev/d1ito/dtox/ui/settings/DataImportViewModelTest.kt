@@ -28,7 +28,7 @@ class DataImportViewModelTest {
             UserDataImporter(
                 bookDataStore = InMemoryBookDataStore(),
                 libraryIndex = EmptyLibraryIndex(),
-                importLibraryBook = { _, _ -> Result.success(Unit) },
+                importLibraryBook = { _, _ -> Result.failure(IllegalStateException("no books")) },
                 ioDispatcher = Dispatchers.Unconfined,
             )
         return DataImportViewModel(importer, openSource, CoroutineScope(Dispatchers.Unconfined))
@@ -96,6 +96,9 @@ private class EmptyLibraryIndex : LibraryIndex {
     override suspend fun remove(bookIdentifier: BookIdentifier): Result<Unit> = Result.success(Unit)
 
     override suspend fun markOpened(bookIdentifier: BookIdentifier): Result<Unit> =
+        Result.success(Unit)
+
+    override suspend fun update(change: (List<LibraryEntry>) -> List<LibraryEntry>): Result<Unit> =
         Result.success(Unit)
 
     override suspend fun rebuild(): Result<Unit> = Result.success(Unit)

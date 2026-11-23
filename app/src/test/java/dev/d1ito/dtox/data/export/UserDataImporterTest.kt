@@ -13,6 +13,9 @@ import dev.d1ito.dtox.data.export.ImportFixtures.identifier
 import dev.d1ito.dtox.data.export.ImportFixtures.note
 import dev.d1ito.dtox.data.export.ImportFixtures.zipOf
 import dev.d1ito.dtox.data.storage.BookDataFormat
+import dev.d1ito.dtox.data.storage.FolderSource
+import dev.d1ito.dtox.data.storage.LibraryEntry
+import dev.d1ito.dtox.domain.WatchedFolder
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import org.junit.Assert.assertEquals
@@ -24,6 +27,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.time.Instant
 
+private const val FOLDER = "content://com.android.externalstorage.documents/tree/primary%3ABooks"
 private const val LOCAL_NOTE = "11111111-1111-4111-8111-111111111111"
 private const val IMPORTED_NOTE = "22222222-2222-4222-8222-222222222222"
 
@@ -39,7 +43,7 @@ class UserDataImporterTest {
     private fun import(zip: ByteArray): Result<Unit> = harness.import(zip)
 
     @Test
-    fun validZip_mergesEachBook_andRebuildsTheIndex() {
+    fun validZip_mergesEachBook_andUpdatesTheIndex() {
         val localNote = note(LOCAL_NOTE, "Escrita aquí")
         val importedNote = note(IMPORTED_NOTE, "Escrita en otro móvil")
         runBlocking { store.write(bookData(BOOK_A, EARLIER, listOf(localNote))) }
@@ -58,7 +62,7 @@ class UserDataImporterTest {
         assertEquals(listOf(localNote, importedNote), merged.annotations)
         val added = runBlocking { store.read(identifier(BOOK_B)) }.getOrThrow()
         assertEquals(bookData(BOOK_B), added?.copy(preservedFields = JsonObject(emptyMap())))
-        assertEquals(1, libraryIndex.rebuilds)
+        assertEquals(1, libraryIndex.updates)
     }
 
     @Test
@@ -94,5 +98,19 @@ class UserDataImporterTest {
         assertTrue(import(zip).isSuccess)
 
         assertEquals(listOf("$HEX_B.txt" to "b"), importedBookFiles)
+        val listedFiles = libraryIndex.entries.value.map { entry -> entry.fileName }
+        assertEquals(listOf("$HEX_A.epub", "$HEX_B.txt"), listedFiles)
+    }
+
+    @Test
+    fun indexAfterImport_keepsFolderSources_andRefreshesProgress() {
+        val source = FolderSource(WatchedFolder(FOLDER), "$FOLDER/a.epub")
+        val listed =
+            LibraryEntry(identifier(BOOK_A), "A", null, "$HEX_A.epub", EARLIER, false, source)
+        val merged = bookData(BOOK_A, LATER)
+
+        val indexed = indexedAfterImport(listOf(listed), added = listOf(listed), listOf(merged))
+
+        assertEquals(listOf(listed.copy(lastOpenedAt = LATER)), indexed)
     }
 }

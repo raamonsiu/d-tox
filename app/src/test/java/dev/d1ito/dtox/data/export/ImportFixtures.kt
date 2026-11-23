@@ -105,7 +105,10 @@ internal class ImportHarness(
                 libraryIndex = libraryIndex,
                 importLibraryBook = { content, fileName ->
                     importedBookFiles += fileName to content.readBytes().toString(Charsets.UTF_8)
-                    Result.success(Unit)
+                    val identifier = BookIdentifier.fromHex(fileName.substringBefore('.'))
+                    identifier.map { book ->
+                        LibraryEntry(book, "Libro", null, fileName, null, false)
+                    }
                 },
                 ioDispatcher = Dispatchers.Unconfined,
                 limits = limits,
@@ -114,10 +117,10 @@ internal class ImportHarness(
     }
 }
 
-/** [LibraryIndex] that lists the given books and counts rebuilds. */
+/** [LibraryIndex] in memory that counts its updates; rebuilding is not expected. */
 internal class RecordingLibraryIndex : LibraryIndex {
     override val entries = MutableStateFlow<List<LibraryEntry>>(emptyList())
-    var rebuilds = 0
+    var updates = 0
 
     fun listed(bookIdentifier: BookIdentifier) {
         entries.value +=
@@ -133,8 +136,11 @@ internal class RecordingLibraryIndex : LibraryIndex {
     override suspend fun markOpened(bookIdentifier: BookIdentifier): Result<Unit> =
         Result.success(Unit)
 
-    override suspend fun rebuild(): Result<Unit> {
-        rebuilds++
+    override suspend fun update(change: (List<LibraryEntry>) -> List<LibraryEntry>): Result<Unit> {
+        updates++
+        entries.value = change(entries.value)
         return Result.success(Unit)
     }
+
+    override suspend fun rebuild(): Result<Unit> = Result.failure(IllegalStateException("rebuilt"))
 }

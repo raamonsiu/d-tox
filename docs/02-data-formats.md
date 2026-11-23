@@ -284,6 +284,6 @@ RF-41. Ajustes › Datos › «Importar datos» abre el diálogo del sistema par
 
 **Ajustes:** `settings.json` se valida pero **no se importa**. Son preferencias del dispositivo (tema, tipografía, recordatorios) que el usuario ya eligió aquí, las secciones viven en memoria mientras la app está abierta (§5) y los recordatorios dependen de alarmas del sistema; sobrescribirlos sorprendería más que ayudaría.
 
-**Libros** (`library/`, si el zip los trae): los que la biblioteca no lista ya (por `bookId`) se añaden por el mismo camino que una importación normal (copia atómica, `bookId` recalculado del contenido, sin duplicados). Al acabar se reconstruye el índice de biblioteca (§7).
+**Libros** (`library/`, si el zip los trae): los que la biblioteca no lista ya (por `bookId`) se añaden por el mismo camino que una importación normal (copia atómica, `bookId` recalculado del contenido, sin duplicados). Al acabar se actualiza el índice de biblioteca (§7) sin reconstruirlo, para no perder los `source` de las carpetas vigiladas: se añaden los libros nuevos y `finished` y `lastOpenedAt` se refrescan con el progreso fusionado.
 
 Importar el mismo zip otra vez no cambia nada. Si una escritura falla a medias (p. ej. sin espacio), lo ya escrito queda completo y coherente, la app indica «No se pudieron importar los datos.» y basta con repetir la importación.

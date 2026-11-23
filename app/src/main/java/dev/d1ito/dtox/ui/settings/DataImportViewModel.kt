@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import dev.d1ito.dtox.AppContainer
 import dev.d1ito.dtox.data.export.UserDataImportError
 import dev.d1ito.dtox.data.export.UserDataImporter
+import dev.d1ito.dtox.data.importing.newLibraryEntry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -80,7 +81,9 @@ class DataImportViewModel(
                                 bookDataStore = container.bookDataStore,
                                 libraryIndex = container.libraryIndex,
                                 importLibraryBook = { content, fileName ->
-                                    container.bookImporter.import(content, fileName, null).map {}
+                                    container.bookImporter
+                                        .import(content, fileName, null)
+                                        .map { imported -> imported.newLibraryEntry() }
                                 },
                                 ioDispatcher = container.dispatchers.io,
                             ),

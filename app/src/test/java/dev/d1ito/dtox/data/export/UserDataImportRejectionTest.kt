@@ -32,7 +32,7 @@ class UserDataImportRejectionTest {
     private fun assertNothingWritten(harness: ImportHarness) {
         assertEquals(emptyList<BookData>(), harness.store.writes)
         assertEquals(emptyList<Pair<String, String>>(), harness.importedBookFiles)
-        assertEquals(0, harness.libraryIndex.rebuilds)
+        assertEquals(0, harness.libraryIndex.updates)
     }
 
     @Test
