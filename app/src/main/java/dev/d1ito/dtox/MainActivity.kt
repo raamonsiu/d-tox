@@ -42,6 +42,8 @@ import dev.d1ito.dtox.ui.reader.ReadingPosition
 import dev.d1ito.dtox.ui.settings.AboutScreen
 import dev.d1ito.dtox.ui.settings.ContentPreferencesViewModel
 import dev.d1ito.dtox.ui.settings.DataExportViewModel
+import dev.d1ito.dtox.ui.settings.DataFolderRows
+import dev.d1ito.dtox.ui.settings.DataFolderViewModel
 import dev.d1ito.dtox.ui.settings.DataSettingsSection
 import dev.d1ito.dtox.ui.settings.ExportDataRows
 import dev.d1ito.dtox.ui.settings.ReadingSettingsViewModel
@@ -87,9 +89,16 @@ class MainActivity : ComponentActivity() {
         DataExportViewModel.factory(container, applicationContext)
     }
 
-    /** The "Datos" section: the watched folders, then exporting the user data. */
+    private val dataFolderViewModel: DataFolderViewModel by viewModels {
+        DataFolderViewModel.factory(container, applicationContext.contentResolver)
+    }
+
+    /** The "Datos" section: the watched folders, exporting the user data, the data folder. */
     private val dataSettings: @Composable () -> Unit = {
-        DataSettingsSection(watchedFoldersViewModel) { ExportDataRows(dataExportViewModel) }
+        DataSettingsSection(watchedFoldersViewModel) {
+            ExportDataRows(dataExportViewModel)
+            DataFolderRows(dataFolderViewModel)
+        }
     }
 
     private val contentPreferencesViewModel: ContentPreferencesViewModel by viewModels {

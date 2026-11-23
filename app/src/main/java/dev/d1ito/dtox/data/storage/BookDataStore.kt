@@ -4,11 +4,8 @@ import dev.d1ito.dtox.domain.BookIdentifier
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 import java.time.Clock
 
 private const val DATA_EXTENSION = ".json"
@@ -53,12 +50,29 @@ interface BookDataStore {
  * @param ioDispatcher where file I/O runs; never the main thread.
  */
 class FileBookDataStore(
-    private val booksDirectory: File,
-    private val fileWriter: AtomicFileWriter,
-    private val ioDispatcher: CoroutineDispatcher,
+    booksDirectory: File,
+    fileWriter: AtomicFileWriter,
+    ioDispatcher: CoroutineDispatcher,
+    clock: Clock = Clock.systemUTC(),
+) : BookDataStore by StorageBookDataStore(
+        { DirectoryBookFileStorage(booksDirectory, fileWriter, ioDispatcher) },
+        clock,
+    )
+
+/**
+ * Stores each book as `<bookId>.json` in a [BookFileStorage], with the rules of
+ * [FileBookDataStore]. The storage can be swapped with [relocate] (RF-27); every read, write,
+ * update and relocation runs one after another, so the app keeps a single instance.
+ *
+ * @param initialStorage gives the storage to use; called once, on the first use.
+ * @param clock timestamps the names of set-aside corrupt files.
+ */
+class StorageBookDataStore(
+    private val initialStorage: suspend () -> BookFileStorage,
     private val clock: Clock = Clock.systemUTC(),
 ) : BookDataStore {
     private val fileLock = Mutex()
+    private var currentStorage: BookFileStorage? = null
 
     override suspend fun read(bookIdentifier: BookIdentifier): Result<BookData?> =
         fileLock.withLock { readUnlocked(bookIdentifier) }
@@ -79,40 +93,51 @@ class FileBookDataStore(
             writeUnlocked(updated).map { updated }
         }
 
-    private suspend fun readUnlocked(bookIdentifier: BookIdentifier): Result<BookData?> =
-        withContext(ioDispatcher) {
-            val dataFile = dataFileOf(bookIdentifier)
-            try {
-                if (dataFile.isFile) decodedOrSetAside(dataFile) else Result.success(null)
-            } catch (readFailure: IOException) {
-                Result.failure(readFailure)
-            }
+    /**
+     * Moves to [target] while no read or write runs: [prepare] gets the current and the target
+     * storage (e.g. to copy the files and remember the choice), and only when it succeeds do later
+     * calls use [target].
+     *
+     * @return the failure of [prepare]; then the current storage stays in use.
+     */
+    suspend fun relocate(
+        target: BookFileStorage,
+        prepare: suspend (current: BookFileStorage, target: BookFileStorage) -> Result<Unit>,
+    ): Result<Unit> =
+        fileLock.withLock {
+            prepare(storage(), target).onSuccess { currentStorage = target }
         }
 
+    /** The storage in use; the lock must be held. */
+    private suspend fun storage(): BookFileStorage =
+        currentStorage ?: initialStorage().also { storage -> currentStorage = storage }
+
+    private suspend fun readUnlocked(bookIdentifier: BookIdentifier): Result<BookData?> {
+        val name = dataFileNameOf(bookIdentifier)
+        val content =
+            storage().read(name).getOrElse { failure -> return Result.failure(failure) }
+                ?: return Result.success(null)
+        return decodedOrSetAside(name, content)
+    }
+
     private suspend fun writeUnlocked(bookData: BookData): Result<Unit> =
-        fileWriter.write(
-            dataFileOf(bookData.bookIdentifier),
+        storage().write(
+            dataFileNameOf(bookData.bookIdentifier),
             BookDataFormat.encode(bookData).toByteArray(Charsets.UTF_8),
         )
 
-    private fun dataFileOf(bookIdentifier: BookIdentifier): File =
-        File(booksDirectory, bookIdentifier.value + DATA_EXTENSION)
-
-    /** @throws IOException if the file cannot be read or renamed. */
-    private fun decodedOrSetAside(dataFile: File): Result<BookData?> {
-        val decoded = BookDataFormat.decode(dataFile.readText(Charsets.UTF_8))
-        return if (decoded.exceptionOrNull() is BookDataFormatError.Corrupt) {
-            setAside(dataFile)
-            Result.success(null)
-        } else {
-            decoded
-        }
-    }
-
-    /** @throws IOException if the rename fails; the corrupt file then stays where it was. */
-    private fun setAside(dataFile: File) {
-        val corruptFile =
-            File(dataFile.parentFile, "${dataFile.name}.${clock.millis()}$CORRUPT_EXTENSION")
-        Files.move(dataFile.toPath(), corruptFile.toPath(), StandardCopyOption.ATOMIC_MOVE)
+    /** @return the decoded data, or `null` once a corrupt file was set aside. */
+    private suspend fun decodedOrSetAside(
+        name: String,
+        content: ByteArray,
+    ): Result<BookData?> {
+        val decoded = BookDataFormat.decode(content.toString(Charsets.UTF_8))
+        if (decoded.exceptionOrNull() !is BookDataFormatError.Corrupt) return decoded
+        val corruptName = "$name.${clock.millis()}$CORRUPT_EXTENSION"
+        return storage().rename(name, corruptName).map { null }
     }
 }
+
+/** `<bookId>.json`, the name of a book's data file. */
+internal fun dataFileNameOf(bookIdentifier: BookIdentifier): String =
+    bookIdentifier.value + DATA_EXTENSION

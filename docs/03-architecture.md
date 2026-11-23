@@ -109,6 +109,7 @@ Ventajas: coste cero, sin FCM, sin datos de usuario en el servidor, auditable. D
 | ----------------- | -------------------- | ---------------------------------- |
 | Libros importados | `files/library/`     | Ninguno (SAF)                      |
 | Progreso/notas    | `files/books/*.json` | Ninguno                            |
+| Carpeta de datos  | elegida (RF-27)      | Ninguno (SAF, lectura y escritura) |
 | Caché parseada    | `cache/`             | Ninguno                            |
 | Lecturas cortas   | `files/shortreads/`  | Ninguno                            |
 | Red               | feed HTTPS           | `INTERNET`                         |
