@@ -35,7 +35,7 @@ sealed interface BookDataLocation {
 
 /**
  * Owns the app's [BookDataStore] and where it keeps its files (RF-27). The choice is kept in
- * `data-folder.json` (docs/02-data-formats.md §10); a missing, unreadable or corrupt file means
+ * `data-folder.json` (docs/02-data-formats.md §11); a missing, unreadable or corrupt file means
  * [BookDataLocation.Internal].
  *
  * @param locationFile e.g. `files/data-folder.json`.

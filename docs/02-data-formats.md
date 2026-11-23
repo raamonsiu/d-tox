@@ -60,7 +60,7 @@ La página mostrada **no** se persiste, solo se calcula: `página = f(ancla, vie
 
 ## 4. Archivo de progreso y notas (por libro)
 
-Ubicación: por defecto, almacenamiento interno de la app, `files/books/<bookId>.json`; con RF-27, `books/<bookId>.json` dentro de la carpeta de datos elegida por el usuario (§10).
+Ubicación: por defecto, almacenamiento interno de la app, `files/books/<bookId>.json`; con RF-27, `books/<bookId>.json` dentro de la carpeta de datos elegida por el usuario (§11).
 
 ```json
 {
@@ -263,7 +263,33 @@ library/<hex>.<ext>      (por nombre; solo si se elige «Incluir libros»)
 - Orden de entradas determinista y fecha de cada entrada = `exportedAt`: los mismos datos exportados en el mismo instante dan el mismo zip.
 - El destino lo gestiona el sistema y no admite renombrado atómico: si la exportación falla a medias, el documento puede quedar incompleto y la app lo indica ("No se pudieron exportar los datos.").
 
-## 10. Carpeta de datos
+## 10. Importación de datos (zip)
+
+RF-41. Ajustes › Datos › «Importar datos» abre el diálogo del sistema para elegir un archivo (`ACTION_OPEN_DOCUMENT`, `application/zip`) y fusiona en los datos locales un zip de §9, sin perder lo más reciente de este dispositivo. No es sincronización: solo ocurre cuando el usuario lo pide.
+
+**Primero se valida todo, después se escribe.** Se lee el zip entero y, ante cualquier error, no se escribe nada y la app lo indica («El archivo no es una exportación de D-TOX que esta versión pueda importar. No se ha cambiado nada.»):
+
+- `manifest.json` obligatorio, con `format = "dtox-export"` y `version` entero; una `version` mayor que la soportada (o un `books/<bookId>.json` de una versión de §4 más nueva) se rechaza para no perder datos.
+- Solo se aceptan los nombres de §9: `manifest.json`, `settings.json`, `books/<bookId>.json` (con un `bookId` válido, §2) y `library/<hex>.<ext>`. Cualquier otro nombre (rutas absolutas, `..`, subcarpetas, barras invertidas, otros archivos) o un nombre repetido invalida el zip, así que nada puede escribirse fuera de su sitio (_zip slip_).
+- Límites, contados sobre los bytes descomprimidos que se leen de verdad (no los que declara el zip): 20 000 entradas, 16 MiB por JSON, 512 MiB por libro y 4 GiB en total.
+- Se comprueban las sumas CRC del zip; cada JSON debe ser un objeto válido y cada `books/<bookId>.json` debe leerse según §4 y llevar el mismo `bookId` que su nombre.
+
+**Fusión, por libro** (`books/<bookId>.json`, cada archivo con escritura atómica):
+
+- Sin datos locales del libro: se toma el importado tal cual.
+- `title`, `author` y `source`: los locales.
+- `progress`: el de `updatedAt` más reciente; si empatan, el local; si un lado no tiene, el otro.
+- `annotations`: unión por `id`; con el mismo `id`, la de `updatedAt` más reciente; si empatan, la local.
+- Campos desconocidos: se conservan los del lado del que viene cada valor (el progreso y cada anotación, con los suyos); los de primer nivel que solo existen en el importado se añaden.
+- Limitación: los borrados no se representan. Una anotación borrada aquí que siga en el zip vuelve a aparecer al importarlo.
+
+**Ajustes:** `settings.json` se valida pero **no se importa**. Son preferencias del dispositivo (tema, tipografía, recordatorios) que el usuario ya eligió aquí, las secciones viven en memoria mientras la app está abierta (§5) y los recordatorios dependen de alarmas del sistema; sobrescribirlos sorprendería más que ayudaría.
+
+**Libros** (`library/`, si el zip los trae): los que la biblioteca no lista ya (por `bookId`) se añaden por el mismo camino que una importación normal (copia atómica, `bookId` recalculado del contenido, sin duplicados). Al acabar se actualiza el índice de biblioteca (§7) sin reconstruirlo, para no perder los `source` de las carpetas vigiladas: se añaden los libros nuevos y `finished` y `lastOpenedAt` se refrescan con el progreso fusionado.
+
+Importar el mismo zip otra vez no cambia nada. Si una escritura falla a medias (p. ej. sin espacio), lo ya escrito queda completo y coherente, la app indica «No se pudieron importar los datos.» y basta con repetir la importación.
+
+## 11. Carpeta de datos
 
 RF-27. Ajustes › Datos › «Carpeta de datos» permite guardar los `<bookId>.json` (§4) en una carpeta elegida con `ACTION_OPEN_DOCUMENT_TREE` (p. ej. una sincronizada con Syncthing), dentro de su subcarpeta `books/`, en vez de en `files/books/`. «Volver a la memoria interna» deshace la elección. El resto de archivos (`settings.json`, `library/`, índices) sigue en `files/`.
 

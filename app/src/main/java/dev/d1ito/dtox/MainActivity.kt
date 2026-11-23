@@ -44,8 +44,10 @@ import dev.d1ito.dtox.ui.settings.ContentPreferencesViewModel
 import dev.d1ito.dtox.ui.settings.DataExportViewModel
 import dev.d1ito.dtox.ui.settings.DataFolderRows
 import dev.d1ito.dtox.ui.settings.DataFolderViewModel
+import dev.d1ito.dtox.ui.settings.DataImportViewModel
 import dev.d1ito.dtox.ui.settings.DataSettingsSection
 import dev.d1ito.dtox.ui.settings.ExportDataRows
+import dev.d1ito.dtox.ui.settings.ImportDataRows
 import dev.d1ito.dtox.ui.settings.ReadingSettingsViewModel
 import dev.d1ito.dtox.ui.settings.ReminderSettingsViewModel
 import dev.d1ito.dtox.ui.settings.SettingsContent
@@ -93,10 +95,15 @@ class MainActivity : ComponentActivity() {
         DataFolderViewModel.factory(container, applicationContext.contentResolver)
     }
 
-    /** The "Datos" section: the watched folders, exporting the user data, the data folder. */
+    private val dataImportViewModel: DataImportViewModel by viewModels {
+        DataImportViewModel.factory(container, applicationContext)
+    }
+
+    /** "Datos": watched folders, export and import of the user data, and the data folder. */
     private val dataSettings: @Composable () -> Unit = {
         DataSettingsSection(watchedFoldersViewModel) {
             ExportDataRows(dataExportViewModel)
+            ImportDataRows(dataImportViewModel)
             DataFolderRows(dataFolderViewModel)
         }
     }
