@@ -29,6 +29,7 @@ import dev.d1ito.dtox.domain.ReadingSettings
 import dev.d1ito.dtox.domain.ReadingTheme
 import dev.d1ito.dtox.ui.library.LibraryScreen
 import dev.d1ito.dtox.ui.library.LibraryViewModel
+import dev.d1ito.dtox.ui.reader.AnnotationListScreen
 import dev.d1ito.dtox.ui.reader.BookSearchScreen
 import dev.d1ito.dtox.ui.reader.BookmarkToggle
 import dev.d1ito.dtox.ui.reader.ChapterList
@@ -226,11 +227,14 @@ private fun Settings(
  * @property settings current reading settings.
  * @property paginationDispatcher where pages are measured and the book is searched; never the
  *   main thread.
+ * @property onOpenAnnotations opens the book's marks and notes from the controls bar; `null`
+ *   hides their button.
  * @property onOpenSettings opens the settings screen from the controls bar.
  */
 private class ReadingSetup(
     val settings: ReadingSettings,
     val paginationDispatcher: CoroutineDispatcher,
+    val onOpenAnnotations: (() -> Unit)? = null,
     val onOpenSettings: () -> Unit,
 )
 
@@ -243,7 +247,43 @@ private fun Reader(
     when (state) {
         ReaderUiState.Closed, ReaderUiState.Loading -> EmptyScreen()
         ReaderUiState.Unavailable -> ReaderMessage(stringResource(R.string.reader_book_unavailable))
-        is ReaderUiState.Reading -> ReadingWithControls(state, viewModel, setup)
+        is ReaderUiState.Reading -> ReadingWithAnnotations(state, viewModel, setup)
+    }
+}
+
+/**
+ * The reading screens, or the marks and notes of the book the controls bar opens; back or
+ * choosing one closes them. Without readable annotations the bar offers no list.
+ */
+@Composable
+private fun ReadingWithAnnotations(
+    state: ReaderUiState.Reading,
+    viewModel: ReaderViewModel,
+    setup: ReadingSetup,
+) {
+    var annotationsVisible by rememberSaveable { mutableStateOf(false) }
+    val annotations by viewModel.annotations.annotations.collectAsState()
+    if (annotationsVisible) {
+        BackHandler { annotationsVisible = false }
+        AnnotationListScreen(
+            book = state.book,
+            annotations = annotations,
+            rowsDispatcher = setup.paginationDispatcher,
+            onSelect = { anchor ->
+                annotationsVisible = false
+                viewModel.onSearchResultSelected(anchor)
+            },
+        )
+    } else {
+        val openAnnotations = { annotationsVisible = true }.takeIf { annotations != null }
+        val withAnnotations =
+            ReadingSetup(
+                setup.settings,
+                setup.paginationDispatcher,
+                onOpenAnnotations = openAnnotations,
+                onOpenSettings = setup.onOpenSettings,
+            )
+        ReadingWithControls(state, viewModel, withAnnotations)
     }
 }
 
@@ -304,7 +344,10 @@ private fun readingPositionOf(
     )
 
 /** The pages, and the controls bar a tap in the center shows; turning a page hides it. */
-@Suppress("LongParameterList") // The state and its owners, plus the two screens the bar opens.
+@Suppress(
+    "LongParameterList", // The state and its owners, plus the two screens the bar opens.
+    "LongMethod", // Every action of the controls bar is listed here, in one place.
+)
 @Composable
 private fun PagesWithControls(
     state: ReaderUiState.Reading,
@@ -336,6 +379,7 @@ private fun PagesWithControls(
                         pageBookmarked?.let { bookmarked ->
                             BookmarkToggle(bookmarked, viewModel.annotations::toggleBookmark)
                         },
+                    onAnnotations = setup.onOpenAnnotations,
                 ),
             onHide = { controlsVisible = false },
         )

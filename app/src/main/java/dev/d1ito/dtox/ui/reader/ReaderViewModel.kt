@@ -159,7 +159,8 @@ class ReaderViewModel(
     }
 
     /**
-     * Opens the page holding [anchor], chosen among the search results; ignored outside the book.
+     * Opens the page holding [anchor], chosen among the search results or the marks and notes;
+     * ignored outside the book.
      */
     fun onSearchResultSelected(anchor: Anchor) {
         onPageSettled(anchor)
