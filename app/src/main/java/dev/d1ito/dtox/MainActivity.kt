@@ -25,10 +25,14 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import dev.d1ito.dtox.data.storage.PersistableFolderAccess
 import dev.d1ito.dtox.data.storage.SafWatchedFolderDocuments
+import dev.d1ito.dtox.domain.Book
+import dev.d1ito.dtox.domain.BookAnnotation
 import dev.d1ito.dtox.domain.ReadingSettings
 import dev.d1ito.dtox.domain.ReadingTheme
 import dev.d1ito.dtox.ui.library.LibraryScreen
 import dev.d1ito.dtox.ui.library.LibraryViewModel
+import dev.d1ito.dtox.ui.reader.AnnotationExportAction
+import dev.d1ito.dtox.ui.reader.AnnotationExportViewModel
 import dev.d1ito.dtox.ui.reader.AnnotationListScreen
 import dev.d1ito.dtox.ui.reader.BookSearchScreen
 import dev.d1ito.dtox.ui.reader.BookmarkToggle
@@ -60,6 +64,12 @@ import dev.d1ito.dtox.ui.theme.DTOXTheme
 import dev.d1ito.dtox.ui.theme.WindowMatchesPalette
 import dev.d1ito.dtox.ui.theme.readingPaletteFor
 import kotlinx.coroutines.CoroutineDispatcher
+
+/**
+ * Actions shown above a book's list of marks and notes, given the book and its annotations
+ * (`null` while they cannot be read).
+ */
+private typealias AnnotationActions = @Composable (Book, List<BookAnnotation>?) -> Unit
 
 /**
  * The only activity. It shows the library, or the reader while a book is open; back closes the
@@ -109,6 +119,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val annotationExportViewModel: AnnotationExportViewModel by viewModels {
+        AnnotationExportViewModel.factory(container, applicationContext)
+    }
+
+    /** Actions of the list of marks and notes: exporting them to Markdown, once they are read. */
+    private val annotationActions: AnnotationActions = { book, annotations ->
+        if (annotations != null) {
+            AnnotationExportAction(book, annotations, annotationExportViewModel)
+        }
+    }
+
     private val contentPreferencesViewModel: ContentPreferencesViewModel by viewModels {
         ContentPreferencesViewModel.factory(container)
     }
@@ -141,6 +162,7 @@ class MainActivity : ComponentActivity() {
                     ),
                     container.dispatchers,
                     dataSettings = dataSettings,
+                    annotationActions = annotationActions,
                 )
             }
         }
@@ -173,6 +195,7 @@ private fun App(
     settingsViewModels: SettingsViewModels,
     dispatchers: AppDispatchers,
     dataSettings: @Composable () -> Unit,
+    annotationActions: AnnotationActions,
 ) {
     val readerState by readerViewModel.state.collectAsState()
     // null until read from disk: paginating with the defaults first would paginate twice.
@@ -194,10 +217,11 @@ private fun App(
         else -> {
             BackHandler(onBack = readerViewModel::close)
             val reading =
-                ReadingSetup(loadedSettings, dispatchers.computation) {
-                    settingsVisible =
-                        true
-                }
+                ReadingSetup(
+                    loadedSettings,
+                    dispatchers.computation,
+                    annotationActions = annotationActions,
+                ) { settingsVisible = true }
             Reader(readerState, readerViewModel, reading)
         }
     }
@@ -245,11 +269,13 @@ private fun Settings(
  *   main thread.
  * @property onOpenAnnotations opens the book's marks and notes from the controls bar; `null`
  *   hides their button.
+ * @property annotationActions shown above the list of marks and notes.
  * @property onOpenSettings opens the settings screen from the controls bar.
  */
 private class ReadingSetup(
     val settings: ReadingSettings,
     val paginationDispatcher: CoroutineDispatcher,
+    val annotationActions: AnnotationActions = { _, _ -> },
     val onOpenAnnotations: (() -> Unit)? = null,
     val onOpenSettings: () -> Unit,
 )
@@ -289,6 +315,7 @@ private fun ReadingWithAnnotations(
                 annotationsVisible = false
                 viewModel.onSearchResultSelected(anchor)
             },
+            actions = { setup.annotationActions(state.book, annotations) },
         )
     } else {
         val openAnnotations = { annotationsVisible = true }.takeIf { annotations != null }
@@ -296,6 +323,7 @@ private fun ReadingWithAnnotations(
             ReadingSetup(
                 setup.settings,
                 setup.paginationDispatcher,
+                setup.annotationActions,
                 onOpenAnnotations = openAnnotations,
                 onOpenSettings = setup.onOpenSettings,
             )

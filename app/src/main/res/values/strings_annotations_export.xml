@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="annotations_export_action">Exportar a Markdown</string>
+    <string name="annotations_export_running">Exportando…</string>
+    <string name="annotations_export_done">Notas exportadas.</string>
+    <string name="annotations_export_failed">No se pudieron exportar las notas.</string>
+</resources>
