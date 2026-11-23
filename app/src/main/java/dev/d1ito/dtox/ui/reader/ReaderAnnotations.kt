@@ -11,7 +11,9 @@ import dev.d1ito.dtox.domain.AnnotationMetadata
 import dev.d1ito.dtox.domain.Book
 import dev.d1ito.dtox.domain.BookAnnotation
 import dev.d1ito.dtox.domain.anchorAt
+import dev.d1ito.dtox.domain.covers
 import dev.d1ito.dtox.domain.highlightRanges
+import dev.d1ito.dtox.domain.textIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -165,6 +167,41 @@ class ReaderAnnotations(
         }
     }
 
+    /**
+     * Stores a highlight of [range], selected in the open book, with a copy of its text as
+     * [textIn] extracts it (RF-20). Ignored while [annotations] is `null`, when [range] already
+     * lies inside one stored highlight (it would add nothing visible) or covers no text (e.g. only
+     * a separator). Not gated like [toggleBookmark]: the selection is cleared once highlighted, so
+     * the same range is not offered twice, and the repository serializes the writes.
+     */
+    fun highlight(range: AnchorRange) {
+        val annotated = openBook
+        val stored = storedAnnotations.value
+        val alreadyHighlighted =
+            stored.orEmpty().highlightRanges().any { highlighted -> highlighted.covers(range) }
+        if (annotated == null || stored == null || alreadyHighlighted) return
+        val highlight = newHighlight(annotated.book, range) ?: return
+        scope.launch {
+            repository.add(annotated.book.identifier, highlight, annotated.newBookDetails)
+        }
+    }
+
+    /**
+     * A new highlight of [range] with its text and a start quote that lets it be relocated later.
+     *
+     * @return the highlight, or `null` when [range] covers no text of [book].
+     */
+    private fun newHighlight(
+        book: Book,
+        range: AnchorRange,
+    ): BookAnnotation.Highlight? {
+        val text = book.textIn(range)?.takeIf(String::isNotBlank) ?: return null
+        val quotedRange = AnchorRange.create(withQuote(book, range.start), range.end).getOrNull()
+        val now = clock.instant()
+        val metadata = AnnotationMetadata(AnnotationIdentifier.random(), now, now)
+        return quotedRange?.let { BookAnnotation.Highlight.create(metadata, it, text).getOrNull() }
+    }
+
     /** Adds a bookmark at the start of [page] if [bookmarksOnPage] is empty, else removes them. */
     private suspend fun toggleBookmark(
         annotated: AnnotatedBook,
@@ -188,19 +225,18 @@ class ReaderAnnotations(
         pageStart: Anchor,
     ): BookAnnotation.Bookmark {
         val now = clock.instant()
-        val anchor =
-            book
-                .anchorAt(
-                    pageStart.chapter,
-                    pageStart.block,
-                    pageStart.offset,
-                ).getOrDefault(pageStart)
         return BookAnnotation.Bookmark(
             metadata = AnnotationMetadata(AnnotationIdentifier.random(), now, now),
-            start = anchor,
+            start = withQuote(book, pageStart),
         )
     }
 }
+
+/** The same position in [book] with the quote that lets it be relocated later. */
+private fun withQuote(
+    book: Book,
+    position: Anchor,
+): Anchor = book.anchorAt(position.chapter, position.block, position.offset).getOrDefault(position)
 
 /** @return the bookmarks whose anchor falls on [page]. */
 private fun List<BookAnnotation>.bookmarksOn(page: ShownPage): List<BookAnnotation.Bookmark> =

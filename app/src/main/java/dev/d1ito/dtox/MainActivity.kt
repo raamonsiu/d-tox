@@ -413,6 +413,7 @@ private fun PagesWithControls(
             settings = setup.settings,
             book = state.book,
             highlights = highlightsOf(viewModel.annotations),
+            onHighlight = highlightActionOf(viewModel.annotations),
         )
         ReaderControlsBar(
             visible = controlsVisible,
@@ -437,6 +438,16 @@ private fun PagesWithControls(
 @Composable
 private fun highlightsOf(annotations: ReaderAnnotations): List<AnchorRange> =
     annotations.highlights.collectAsState().value
+
+/**
+ * Highlights a selection in the book open in the reader; `null` while its annotations cannot be
+ * stored (not read yet, or an unreadable data file), so «Resaltar» is not offered then.
+ */
+@Composable
+private fun highlightActionOf(annotations: ReaderAnnotations): ((AnchorRange) -> Unit)? {
+    val available = annotations.annotations.collectAsState().value != null
+    return if (available) annotations::highlight else null
+}
 
 /** Shown while the book loads: only the theme background. */
 @Composable
