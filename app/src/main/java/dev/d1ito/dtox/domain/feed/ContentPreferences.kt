@@ -52,6 +52,14 @@ data class ContentPreferences private constructor(
     ): Result<ContentPreferences> =
         edited(durations = if (chosen) durations + duration else durations - duration)
 
+    /**
+     * @return whether [reading] is in a chosen category and its `minutes` is a chosen duration
+     *   bucket; a value that is no bucket never fits.
+     */
+    fun accepts(reading: ShortRead): Boolean =
+        reading.category in categories &&
+            ShortReadDuration.ofMinutes(reading.minutes)?.let { it in durations } == true
+
     /** @return these preferences with the given values changed, or a [ContentPreferencesError]. */
     fun edited(
         categories: Set<ShortReadCategory> = this.categories,
