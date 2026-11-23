@@ -62,7 +62,7 @@ La página mostrada **no** se persiste, solo se calcula: `página = f(ancla, vie
 
 ## 4. Archivo de progreso y notas (por libro)
 
-Ubicación (MVP): almacenamiento interno de la app, `files/books/<bookId>.json`. Con RF-27 podrá apuntar a una carpeta elegida por el usuario.
+Ubicación: por defecto, almacenamiento interno de la app, `files/books/<bookId>.json`; con RF-27, `books/<bookId>.json` dentro de la carpeta de datos elegida por el usuario (§11).
 
 ```json
 {
@@ -264,3 +264,48 @@ library/<hex>.<ext>      (por nombre; solo si se elige «Incluir libros»)
 - Nunca se incluyen: temporales de la escritura atómica (`*.tmp`), archivos apartados como corruptos (`*.corrupt`), cachés reconstruibles o descargables (`library-index.json`, §7, y `shortreads/`, §6) ni ningún otro archivo de `files/`. Tampoco `watched-folders.json` (§8): sus permisos SAF no sobreviven a una reinstalación.
 - Orden de entradas determinista y fecha de cada entrada = `exportedAt`: los mismos datos exportados en el mismo instante dan el mismo zip.
 - El destino lo gestiona el sistema y no admite renombrado atómico: si la exportación falla a medias, el documento puede quedar incompleto y la app lo indica ("No se pudieron exportar los datos.").
+
+## 10. Importación de datos (zip)
+
+RF-41. Ajustes › Datos › «Importar datos» abre el diálogo del sistema para elegir un archivo (`ACTION_OPEN_DOCUMENT`, `application/zip`) y fusiona en los datos locales un zip de §9, sin perder lo más reciente de este dispositivo. No es sincronización: solo ocurre cuando el usuario lo pide.
+
+**Primero se valida todo, después se escribe.** Se lee el zip entero y, ante cualquier error, no se escribe nada y la app lo indica («El archivo no es una exportación de D-TOX que esta versión pueda importar. No se ha cambiado nada.»):
+
+- `manifest.json` obligatorio, con `format = "dtox-export"` y `version` entero; una `version` mayor que la soportada (o un `books/<bookId>.json` de una versión de §4 más nueva) se rechaza para no perder datos.
+- Solo se aceptan los nombres de §9: `manifest.json`, `settings.json`, `books/<bookId>.json` (con un `bookId` válido, §2) y `library/<hex>.<ext>`. Cualquier otro nombre (rutas absolutas, `..`, subcarpetas, barras invertidas, otros archivos) o un nombre repetido invalida el zip, así que nada puede escribirse fuera de su sitio (_zip slip_).
+- Límites, contados sobre los bytes descomprimidos que se leen de verdad (no los que declara el zip): 20 000 entradas, 16 MiB por JSON, 512 MiB por libro y 4 GiB en total.
+- Se comprueban las sumas CRC del zip; cada JSON debe ser un objeto válido y cada `books/<bookId>.json` debe leerse según §4 y llevar el mismo `bookId` que su nombre.
+
+**Fusión, por libro** (`books/<bookId>.json`, cada archivo con escritura atómica):
+
+- Sin datos locales del libro: se toma el importado tal cual.
+- `title`, `author` y `source`: los locales.
+- `progress`: el de `updatedAt` más reciente; si empatan, el local; si un lado no tiene, el otro.
+- `annotations`: unión por `id`; con el mismo `id`, la de `updatedAt` más reciente; si empatan, la local.
+- Campos desconocidos: se conservan los del lado del que viene cada valor (el progreso y cada anotación, con los suyos); los de primer nivel que solo existen en el importado se añaden.
+- Limitación: los borrados no se representan. Una anotación borrada aquí que siga en el zip vuelve a aparecer al importarlo.
+
+**Ajustes:** `settings.json` se valida pero **no se importa**. Son preferencias del dispositivo (tema, tipografía, recordatorios) que el usuario ya eligió aquí, las secciones viven en memoria mientras la app está abierta (§5) y los recordatorios dependen de alarmas del sistema; sobrescribirlos sorprendería más que ayudaría.
+
+**Libros** (`library/`, si el zip los trae): los que la biblioteca no lista ya (por `bookId`) se añaden por el mismo camino que una importación normal (copia atómica, `bookId` recalculado del contenido, sin duplicados). Al acabar se actualiza el índice de biblioteca (§7) sin reconstruirlo, para no perder los `source` de las carpetas vigiladas: se añaden los libros nuevos y `finished` y `lastOpenedAt` se refrescan con el progreso fusionado.
+
+Importar el mismo zip otra vez no cambia nada. Si una escritura falla a medias (p. ej. sin espacio), lo ya escrito queda completo y coherente, la app indica «No se pudieron importar los datos.» y basta con repetir la importación.
+
+## 11. Carpeta de datos
+
+RF-27. Ajustes › Datos › «Carpeta de datos» permite guardar los `<bookId>.json` (§4) en una carpeta elegida con `ACTION_OPEN_DOCUMENT_TREE` (p. ej. una sincronizada con Syncthing), dentro de su subcarpeta `books/`, en vez de en `files/books/`. «Volver a la memoria interna» deshace la elección. El resto de archivos (`settings.json`, `library/`, índices) sigue en `files/`.
+
+Archivo `files/data-folder.json`, escrito de forma atómica; aparte de `settings.json` porque el URI lleva el nombre de una carpeta del usuario (como §8):
+
+```json
+{
+  "version": 1,
+  "folder": "content://com.android.externalstorage.documents/tree/primary%3ASync%2FDTOX"
+}
+```
+
+- `folder`: URI de árbol SAF, o `null` para la memoria interna. Si el archivo falta, está corrupto o no se puede leer, se usa la memoria interna (nunca bloquea la app).
+- Mientras la carpeta está en uso, la app conserva su permiso persistente de lectura y escritura: se toma antes de cambiar y se libera la de la carpeta que se deja (o la nueva, si el cambio falla).
+- **Cambio de carpeta:** sin lecturas ni escrituras de datos de libros en medio, se copia cada `<bookId>.json` del sitio actual al nuevo salvo que el nuevo tenga uno igual de reciente o más (por fecha de modificación; si alguna fecha se desconoce, se conserva el del destino). No se copian `*.corrupt`, temporales ni otros archivos (p. ej. conflictos de sync). Luego se guarda `data-folder.json` y se empieza a usar el nuevo sitio. Si algo falla, se sigue usando el sitio anterior (las copias ya hechas quedan en el destino). Si el sitio actual no se puede leer (permiso revocado, tarjeta retirada), se cambia sin copiar, para poder volver siempre a la memoria interna. Los archivos del sitio que se deja no se borran.
+- **Escritura segura en la carpeta:** SAF no tiene renombrado atómico que sustituya un archivo. Se escribe `<bookId>.json.tmp`, se relee para comprobarlo, se borra el anterior y se renombra la copia. Si la app muere entre el borrado y el renombrado, solo queda la copia comprobada y la siguiente lectura la pone en su sitio (una `.tmp` cortada en la primera escritura de un libro se aparta como corrupta, §4). No hay `fsync`: la durabilidad depende del proveedor. Si el proveedor no permite renombrar, tras comprobar la copia se sobrescribe el archivo en su sitio y se borra la copia; una muerte en medio puede dejarlo incompleto (se aparta como corrupto y se pierde ese progreso).
+- Fusión de conflictos de sync: fuera de alcance; cada archivo es completo y gana el más reciente al cambiar de carpeta.

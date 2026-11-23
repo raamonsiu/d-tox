@@ -1,0 +1,9 @@
+<resources>
+    <string name="data_folder_title">Carpeta de datos</string>
+    <string name="data_folder_internal">Memoria interna</string>
+    <string name="data_folder_hint">Progreso y notas. Al cambiar de carpeta se copian; si la carpeta ya tiene un archivo más reciente del mismo libro, se conserva ese.</string>
+    <string name="data_folder_choose">Elegir carpeta de datos</string>
+    <string name="data_folder_use_internal">Volver a la memoria interna</string>
+    <string name="data_folder_moving">Copiando los datos…</string>
+    <string name="data_folder_failed">No se pudo cambiar la carpeta de datos. Los datos siguen donde estaban.</string>
+</resources>

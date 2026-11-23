@@ -43,6 +43,7 @@ private val minimumTouchTarget = 48.dp
  * @property onTextSettings opens the text settings.
  * @property onSearch opens the search inside the book.
  * @property bookmark marks or unmarks the page being read.
+ * @property onAnnotations opens the list of the book's marks and notes.
  */
 class ReaderControlActions(
     val onBack: () -> Unit,
@@ -50,6 +51,7 @@ class ReaderControlActions(
     val onTextSettings: (() -> Unit)? = null,
     val onSearch: (() -> Unit)? = null,
     val bookmark: BookmarkToggle? = null,
+    val onAnnotations: (() -> Unit)? = null,
 )
 
 /**
@@ -108,6 +110,9 @@ private fun ControlButtons(
             ControlButton(R.string.reader_controls_search, open, onHide)
         }
         actions.bookmark?.let { toggle -> BookmarkButton(toggle) }
+        actions.onAnnotations?.let { open ->
+            ControlButton(R.string.reader_controls_annotations, open, onHide)
+        }
     }
 }
 

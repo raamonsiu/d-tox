@@ -1,5 +1,6 @@
 package dev.d1ito.dtox
 
+import dev.d1ito.dtox.data.storage.FakeDocumentTree
 import dev.d1ito.dtox.ui.reader.SampleBookLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -32,6 +33,7 @@ class AppContainerTest {
         DefaultAppContainer(
             filesDirectory = temporaryFolder.newFolder("files"),
             cacheDirectory = cacheDirectory,
+            documentTreeOf = { FakeDocumentTree() },
             dispatchers =
                 AppDispatchers(
                     io = ioDispatcher,
