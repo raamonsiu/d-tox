@@ -307,3 +307,29 @@ Archivo `files/data-folder.json`, escrito de forma atómica; aparte de `settings
 - **Cambio de carpeta:** sin lecturas ni escrituras de datos de libros en medio, se copia cada `<bookId>.json` del sitio actual al nuevo salvo que el nuevo tenga uno igual de reciente o más (por fecha de modificación; si alguna fecha se desconoce, se conserva el del destino). No se copian `*.corrupt`, temporales ni otros archivos (p. ej. conflictos de sync). Luego se guarda `data-folder.json` y se empieza a usar el nuevo sitio. Si algo falla, se sigue usando el sitio anterior (las copias ya hechas quedan en el destino). Si el sitio actual no se puede leer (permiso revocado, tarjeta retirada), se cambia sin copiar, para poder volver siempre a la memoria interna. Los archivos del sitio que se deja no se borran.
 - **Escritura segura en la carpeta:** SAF no tiene renombrado atómico que sustituya un archivo. Se escribe `<bookId>.json.tmp`, se relee para comprobarlo, se borra el anterior y se renombra la copia. Si la app muere entre el borrado y el renombrado, solo queda la copia comprobada y la siguiente lectura la pone en su sitio (una `.tmp` cortada en la primera escritura de un libro se aparta como corrupta, §4). No hay `fsync`: la durabilidad depende del proveedor. Si el proveedor no permite renombrar, tras comprobar la copia se sobrescribe el archivo en su sitio y se borra la copia; una muerte en medio puede dejarlo incompleto (se aparta como corrupto y se pierde ese progreso).
 - Fusión de conflictos de sync: fuera de alcance; cada archivo es completo y gana el más reciente al cambiar de carpeta.
+
+## 12. Exportación de notas a Markdown
+
+RF-26. En «Marcas y notas», «Exportar a Markdown» abre el diálogo «Guardar como» del sistema (`ACTION_CREATE_DOCUMENT`, sin permisos de almacenamiento) con el nombre `<título>-notas.md` (sin los caracteres que rechazan los sistemas de archivos y acortado; `notas.md` si no queda nada) y escribe un archivo UTF-8:
+
+```markdown
+# Título
+
+Autor
+
+## Capítulo
+
+> Texto resaltado
+
+Nota del resaltado
+
+> Inicio del texto donde está la nota…
+
+Nota sin resaltado
+```
+
+- Orden de lectura (por ancla de inicio, luego fin, fecha de creación e id), agrupado por el capítulo donde está cada anotación ahora (ancla reubicada, §3); un capítulo sin título se llama «Capítulo N».
+- Un resaltado es su texto como cita y, si tiene, su nota debajo. Una nota sin resaltado cita hasta 80 caracteres del texto donde apunta, como en la lista. Sin autor, no hay línea de autor.
+- **Los marcadores no se exportan:** RF-26 pide notas y resaltados, y un marcador no lleva texto. Si solo hay marcadores (o nada), la acción aparece desactivada; el generador devolvería solo el título y el autor.
+- El texto del libro y del usuario se escapa con `\` donde Markdown lo leería como formato (``\`*_[]<|~``, entidades `&…;`, y `#`, `>`, `-`, `+`, `=` o `1.` al empezar línea; en los títulos, también `#`), así se lee como texto plano. Los saltos de línea se normalizan (`\r\n`, `\r`, U+2028…), cada línea se recorta, varias líneas en blanco son un solo cambio de párrafo y un salto simple se conserva como salto duro (`\` al final de línea).
+- El documento se genera y se escribe fuera del hilo principal; el resultado se indica con una línea: «Notas exportadas.» o «No se pudieron exportar las notas.».
